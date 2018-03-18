@@ -1,5 +1,9 @@
-//#![deny(missing_docs)]
+#![deny(missing_docs)]
 #![doc(html_root_url = "http://arcnmx.github.io/mccs-rs/")]
+
+//! VESA Monitor Command Control Set standardizes the meaning of DDC/CI VCP
+//! feature codes, and allows a display to broadcast its capabilities to the
+//! host.
 
 #[macro_use]
 extern crate nom;
@@ -46,7 +50,7 @@ pub struct Capabilities {
     /// Windows Hardware Quality Labs testing.
     pub ms_whql: Option<u8>,
     /// Monitor Command Control Set version code.
-    pub mccs_version: Option<MccsVersion>,
+    pub mccs_version: Option<Version>,
     /// Virtual Control Panel feature code descriptors.
     pub vcp_features: BTreeMap<FeatureCode, VcpDescriptor>,
     /// Extended Display Identification Data
@@ -101,6 +105,7 @@ impl FromStr for Protocol {
     }
 }
 
+/// Display type
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Type {
     /// Cathode Ray Tube display
@@ -145,7 +150,7 @@ impl FromStr for Type {
 
 /// Monitor Command Control Set specification version code
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct MccsVersion {
+pub struct Version {
     /// Major version number
     pub major: u8,
     /// Minor revision version
@@ -191,10 +196,10 @@ pub enum UnknownData {
 }
 
 /// Parses a MCCS capability string.
-pub fn parse_capabilities(capability_string: &[u8]) -> io::Result<Capabilities> {
+pub fn parse_capabilities<C: AsRef<[u8]>>(capability_string: C) -> io::Result<Capabilities> {
     use parse::Cap;
 
-    parse::parse_capabilities(capability_string).map(|c| {
+    parse::parse_capabilities(capability_string.as_ref()).map(|c| {
         // TODO: check for multiple tags of anything only allowed once?
 
         let mut caps = Capabilities::default();
@@ -205,7 +210,7 @@ pub fn parse_capabilities(capability_string: &[u8]) -> io::Result<Capabilities> 
                 Cap::Model(model) => caps.model = Some(model.into()),
                 Cap::Commands(ref cmds) => caps.commands = cmds.clone(),
                 Cap::Whql(whql) => caps.ms_whql = Some(whql),
-                Cap::MccsVersion(major, minor) => caps.mccs_version = Some(MccsVersion {
+                Cap::MccsVersion(major, minor) => caps.mccs_version = Some(Version {
                     major: major,
                     minor: minor,
                 }),
