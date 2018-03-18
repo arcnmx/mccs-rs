@@ -3,351 +3,263 @@
 
 #[macro_use]
 extern crate nom;
+#[cfg(feature = "void")]
+extern crate void;
 
-use std::str::{self, FromStr};
-use std::borrow::Cow;
 use std::io;
-use nom::*;
+use std::fmt::{self, Display, Formatter};
+use std::str::FromStr;
+use std::collections::{BTreeMap, btree_map};
 
+#[cfg(feature = "void")]
+use void::Void;
+#[cfg(not(feature = "void"))]
+pub enum Void { }
+
+mod parse;
+#[cfg(test)]
+mod testdata;
+
+/// VCP feature code
+pub type FeatureCode = u8;
+
+/// Extended Display Identification Data
+pub type EdidData = Vec<u8>;
+
+/// Video Display Information Format
+pub type VdifData = Vec<u8>;
+
+/// Parsed display capabilities string.
+#[derive(Debug, Default, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct Capabilities {
+    /// The protocol class.
+    ///
+    /// It's not very clear what this field is for.
+    pub protocol: Option<Protocol>,
+    /// The type of display.
+    pub ty: Option<Type>,
+    /// The model name/number of the display.
+    pub model: Option<String>,
+    /// A list of the supported VCP commands.
+    pub commands: Vec<u8>,
+    /// A value of `1` seems to indicate that the monitor has passed Microsoft's
+    /// Windows Hardware Quality Labs testing.
+    pub ms_whql: Option<u8>,
+    /// Monitor Command Control Set version code.
+    pub mccs_version: Option<MccsVersion>,
+    /// Virtual Control Panel feature code descriptors.
+    pub vcp_features: BTreeMap<FeatureCode, VcpDescriptor>,
+    /// Extended Display Identification Data
+    ///
+    /// Note that although the standard defines this field, in practice it
+    /// is not used and instead the EDID is read from a separate I2C EEPROM on
+    /// the monitor.
+    pub edid: Option<EdidData>,
+    /// Video Display Information Format are optional extension blocks for the
+    /// EDID. Like the EDID field, this is probably not in use.
+    pub vdif: Vec<VdifData>,
+    /// Additional unrecognized data from the capability string.
+    pub unknown_tags: Vec<UnknownTag>,
+}
+
+/// Display protocol class
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Protocol {
+    /// Standard monitor
     Monitor,
+    /// I have never seen this outside of an MCCS spec example, it may be a typo.
     Display,
+    /// Unrecognized protocol class
     Unknown(String),
 }
 
+impl<'a> From<&'a str> for Protocol {
+    fn from(s: &'a str) -> Self {
+        match s {
+            "monitor" => Protocol::Monitor,
+            "display" => Protocol::Display,
+            s => Protocol::Unknown(s.into()),
+        }
+    }
+}
+
+impl Display for Protocol {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        Display::fmt(match *self {
+            Protocol::Monitor => "monitor",
+            Protocol::Display => "display",
+            Protocol::Unknown(ref s) => s,
+        }, f)
+    }
+}
+
+impl FromStr for Protocol {
+    type Err = Void;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(s.into())
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Type {
-    CRT,
-    LCD,
-    LED,
+    /// Cathode Ray Tube display
+    Crt,
+    /// Liquid Crystal Display
+    Lcd,
+    /// Also an LCD, I'm not sure this should exist.
+    Led,
+    /// Unrecognized display type
     Unknown(String),
 }
 
-named!(hexarray<&[u8], Vec<u8>>,
-    many0!(hexvalue)
-);
-
-named!(hexvalue<&[u8], u8>,
-    do_parse!(
-        take_while!(is_space) >>
-        v: map_res!(complete!(take_str!(2)), |h| u8::from_str_radix(h, 16)) >>
-        take_while!(is_space) >>
-        (v)
-    )
-);
-
-pub type Vcp = Vec<(u8, Option<Vec<u8>>)>;
-pub type VcpName<'a> = (u8, Option<Cow<'a, str>>, Option<Vec<Cow<'a, str>>>);
-
-#[derive(Debug)]
-pub enum Cap<'a> {
-    Protocol(&'a str),
-    Type(&'a str),
-    Model(&'a str),
-    Commands(Vec<u8>),
-    Whql(u8),
-    MccsVersion(u8, u8),
-    Vcp(Vcp),
-    VcpNames(Vec<VcpName<'a>>),
-    Unknown(&'a str, &'a str),
-    UnknownBytes(&'a str, &'a [u8]),
-    UnknownBinary(&'a str, &'a [u8]),
-    Edid(&'a [u8]),
-    Vdif(&'a [u8]),
+impl<'a> From<&'a str> for Type {
+    fn from(s: &'a str) -> Self {
+        match s {
+            s if s.eq_ignore_ascii_case("crt") => Type::Crt,
+            s if s.eq_ignore_ascii_case("lcd") => Type::Lcd,
+            s if s.eq_ignore_ascii_case("led") => Type::Led,
+            s => Type::Unknown(s.into()),
+        }
+    }
 }
 
-named!(vcp<&[u8], Vcp>,
-    delimited!(
-        char!('('),
-        many0!(
-            do_parse!(
-                v: hexvalue >>
-                c: opt!(delimited!(
-                    char!('('),
-                    hexarray,
-                    char!(')')
-                )) >>
-                (v, c)
-            )
-        ),
-        char!(')')
-    )
-);
+impl Display for Type {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        Display::fmt(match *self {
+            Type::Crt => "crt",
+            Type::Lcd => "lcd",
+            Type::Led => "led",
+            Type::Unknown(ref s) => s,
+        }, f)
+    }
+}
 
-named!(balancedparens,
-    take_while!({
-        // I have no idea how to thread state through this so yay globals...
-        use std::sync::atomic::{Ordering, AtomicUsize};
-        static DEPTH: AtomicUsize = AtomicUsize::new(0);
-        move |c| {
-            let depth = DEPTH.load(Ordering::Relaxed);
+impl FromStr for Type {
+    type Err = Void;
 
-            match c {
-                b')' if depth == 0 => false,
-                b')' => {
-                    DEPTH.store(depth - 1, Ordering::Relaxed);
-                    true
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(s.into())
+    }
+}
+
+/// Monitor Command Control Set specification version code
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct MccsVersion {
+    /// Major version number
+    pub major: u8,
+    /// Minor revision version
+    pub minor: u8,
+}
+
+/// Descriptive information about a supported VCP feature code.
+#[derive(Debug, Default, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct VcpDescriptor {
+    /// The name of the feature code, if different from the standard MCCS spec.
+    pub name: Option<String>,
+    /// Allowed values for this feature, and optionally their names.
+    ///
+    /// This is used for non-continuous VCP types.
+    pub values: BTreeMap<u8, Option<String>>,
+}
+
+impl VcpDescriptor {
+    /// The allowed values for this feature code.
+    pub fn values(&self) -> btree_map::Keys<u8, Option<String>> {
+        self.values.keys()
+    }
+}
+
+/// An unrecognized entry in the capability string
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct UnknownTag {
+    /// The name of the entry
+    pub name: String,
+    /// The data contained in the entry, usually an unparsed string.
+    pub data: UnknownData,
+}
+
+/// Data that can be contained in a capability entry.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum UnknownData {
+    /// UTF-8/ASCII data
+    String(String),
+    /// Data that is not valid UTF-8
+    StringBytes(Vec<u8>),
+    /// Length-prefixed binary data
+    Binary(Vec<u8>),
+}
+
+/// Parses a MCCS capability string.
+pub fn parse_capabilities(capability_string: &[u8]) -> io::Result<Capabilities> {
+    use parse::Cap;
+
+    parse::parse_capabilities(capability_string).map(|c| {
+        // TODO: check for multiple tags of anything only allowed once?
+
+        let mut caps = Capabilities::default();
+        for cap in &c {
+            match *cap {
+                Cap::Protocol(protocol) => caps.protocol = Some(protocol.into()),
+                Cap::Type(ty) => caps.ty = Some(ty.into()),
+                Cap::Model(model) => caps.model = Some(model.into()),
+                Cap::Commands(ref cmds) => caps.commands = cmds.clone(),
+                Cap::Whql(whql) => caps.ms_whql = Some(whql),
+                Cap::MccsVersion(major, minor) => caps.mccs_version = Some(MccsVersion {
+                    major: major,
+                    minor: minor,
+                }),
+                Cap::Vcp(ref vcp) => for &(code, ref values) in vcp {
+                    caps.vcp_features.entry(code).or_insert_with(|| VcpDescriptor::default())
+                        .values.extend(values.iter().flat_map(|i| i).map(|&v| (v, None)))
                 },
-                b'(' => {
-                    DEPTH.store(depth + 1, Ordering::Relaxed);
-                    true
-                },
-                _ => true,
+                Cap::VcpNames(..) => (), // wait until after processing vcp() section
+                Cap::Unknown(name, value) => caps.unknown_tags.push(UnknownTag {
+                    name: name.into(),
+                    data: UnknownData::String(value.into()),
+                }),
+                Cap::UnknownBytes(name, value) => caps.unknown_tags.push(UnknownTag {
+                    name: name.into(),
+                    data: UnknownData::StringBytes(value.into()),
+                }),
+                Cap::UnknownBinary(name, value) => caps.unknown_tags.push(UnknownTag {
+                    name: name.into(),
+                    data: UnknownData::Binary(value.into()),
+                }),
+                Cap::Edid(edid) => caps.edid = Some(edid.into()),
+                Cap::Vdif(vdif) => caps.vdif.push(vdif.into()),
             }
         }
-    })
-);
 
-named!(ident<&[u8], &str>,
-    map_res!(take_while!(|c| is_alphanumeric(c) || c == b'_'), str::from_utf8)
-);
+        for cap in c {
+            match cap {
+                Cap::VcpNames(vcp) => for (code, name, value_names) in vcp {
+                    if let Some(vcp) = caps.vcp_features.get_mut(&code) {
+                        if let Some(name) = name {
+                            vcp.name = Some(name.into())
+                        }
 
-named!(backslash_escape<&[u8], String>,
-    fold_many0!(
-        alt!(
-            do_parse!(
-                tag!("\\x") >>
-                v: map_res!(complete!(take_str!(2)), |h| u8::from_str_radix(h, 16).map(|v| v as char)) >>
-                (v)
-            ) |
-            // TODO: other escapes like \\ \n etc? unclear in access bus spec...
-            map!(complete!(take_str!(1)), |s| s.chars().next().unwrap())
-        ),
-        String::new(),
-        |mut s: String, c| {
-            s.push(c);
-            s
+                        if let Some(value_names) = value_names {
+                            for ((_, dest), name) in vcp.values.iter_mut().zip(value_names) {
+                                *dest = Some(name.into())
+                            }
+                        }
+                    } else {
+                        // TODO: should this be an error if it wasn't specified in vcp()?
+                    }
+                },
+                _ => (),
+            }
         }
-    )
-);
 
-named!(value_escape_nospace<&[u8], Cow<str>>,
-    flat_map!(
-        is_not!(" ()"),
-        alt!(
-            do_parse!(
-                v: map!(map_res!(is_not!("\\"), str::from_utf8), Cow::Borrowed) >>
-                eof!() >>
-                (v)
-            ) |
-            map!(
-                do_parse!(
-                    v: backslash_escape >>
-                    eof!() >>
-                    (v)
-                ),
-                Cow::Owned
-            )
-        )
-    )
-    //map!(map_res!(is_not!("\\"), str::from_utf8), Cow::Borrowed)
-);
-
-named!(value<&[u8], &str>,
-    map_res!(is_not!("()"), str::from_utf8)
-);
-
-named!(caps<&[u8], Vec<Cap>>,
-    do_parse!(
-        v: alt!(
-            delimited!(
-                char!('('),
-                caps_inner,
-                char!(')')
-            ) |
-            caps_inner // hack for Apple Cinema Display
-        ) >>
-        eof!() >>
-        (v)
-    )
-);
-
-named!(binary,
-    do_parse!(
-        tag!(" bin") >>
-        take_while!(is_space) >>
-        v: delimited!(
-            char!('('),
-            do_parse!(
-                count: map_res!(map_res!(digit, str::from_utf8), usize::from_str) >>
-                take_while!(is_space) >>
-                data: delimited!(
-                    char!('('),
-                    complete!(take!(count)),
-                    char!(')')
-                ) >>
-                (data)
-            ),
-            char!(')')
-        ) >>
-        (v)
-    )
-);
-
-// TODO: use tag_no_case?
-
-named!(caps_inner<&[u8], Vec<Cap>>,
-    many0!(
-        do_parse!(
-            take_while!(is_space) >>
-            v: alt!(
-                do_parse!(
-                    tag!("prot") >>
-                    v: delimited!(
-                        char!('('),
-                        value,
-                        char!(')')
-                    ) >>
-                    (Cap::Protocol(v))
-                ) |
-                do_parse!(
-                    tag!("type") >>
-                    v: delimited!(
-                        char!('('),
-                        value,
-                        char!(')')
-                    ) >>
-                    (Cap::Type(v))
-                ) |
-                do_parse!(
-                    tag!("model") >>
-                    v: delimited!(
-                        char!('('),
-                        value,
-                        char!(')')
-                    ) >>
-                    (Cap::Model(v))
-                ) |
-                do_parse!(
-                    tag!("cmds") >>
-                    v: delimited!(
-                        char!('('),
-                        hexarray,
-                        char!(')')
-                    ) >>
-                    (Cap::Commands(v))
-                ) |
-                do_parse!(
-                    tag!("mswhql") >>
-                    v: delimited!(
-                        char!('('),
-                        map_res!(take_str!(1), u8::from_str),
-                        char!(')')
-                    ) >>
-                    (Cap::Whql(v))
-                ) |
-                do_parse!(
-                    tag!("mccs_ver") >>
-                    v: delimited!(
-                        char!('('),
-                        do_parse!(
-                            major: map_res!(digit, |v| u8::from_str(str::from_utf8(v).unwrap())) >>
-                            tag!(".") >>
-                            minor: map_res!(digit, |v| u8::from_str(str::from_utf8(v).unwrap())) >>
-                            (major, minor)
-                        ),
-                        char!(')')
-                    ) >>
-                    (Cap::MccsVersion(v.0, v.1))
-                ) |
-                do_parse!(
-                    alt!(tag!("vcp") | tag!("VCP")) >> // hack for Apple Cinema Display
-                    v: vcp >>
-                    (Cap::Vcp(v))
-                ) |
-                do_parse!(
-                    tag!("vcpname") >>
-                    v: delimited!(
-                        char!('('),
-                        many0!(
-                            do_parse!(
-                                f: hexvalue >>
-                                v: delimited!(
-                                    char!('('),
-                                    do_parse!(
-                                        v: opt!(value_escape_nospace) >>
-                                        n: opt!(delimited!(
-                                            char!('('),
-                                            many0!(
-                                                do_parse!(
-                                                    take_while!(is_space) >>
-                                                    value: value_escape_nospace >>
-                                                    take_while!(is_space) >>
-                                                    (value)
-                                                )
-                                            ),
-                                            char!(')')
-                                        )) >>
-                                        (v, n)
-                                    ),
-                                    char!(')')
-                                ) >>
-                                (f, v.0, v.1)
-                            )
-                        ),
-                        char!(')')
-                    ) >>
-                    (Cap::VcpNames(v))
-                ) |
-                do_parse!(
-                    tag!("edid") >>
-                    v: binary >>
-                    (Cap::Edid(v))
-                ) |
-                do_parse!(
-                    tag!("vdif") >>
-                    v: binary >>
-                    (Cap::Vdif(v))
-                ) |
-                do_parse!(
-                    tag: ident >>
-                    v: binary >>
-                    (Cap::UnknownBinary(tag, v))
-                ) |
-                do_parse!(
-                    tag: ident >>
-                    v: delimited!(
-                        char!('('),
-                        map_res!(balancedparens, str::from_utf8),
-                        char!(')')
-                    ) >>
-                    (Cap::Unknown(tag, v))
-                ) |
-                do_parse!(
-                    tag: ident >>
-                    v: delimited!(
-                        char!('('),
-                        balancedparens,
-                        char!(')')
-                    ) >>
-                    (Cap::UnknownBytes(tag, v))
-                )
-            ) >>
-            take_while!(is_space) >>
-            (v)
-        )
-    )
-);
-
-pub fn parse_capabilities(capability_string: &[u8]) -> io::Result<Vec<Cap>> {
-    caps(capability_string).to_result().map_err(|e|
-        io::Error::new(io::ErrorKind::InvalidData, e.to_string())
-    )
+        caps
+    })
 }
 
 #[test]
 fn capability_string_samples() {
-    let samples = [
-        &b"(prot(monitor)type(lcd)27UD58cmds(01 02 03 0C E3 F3)vcp(02 04 05 08 10 12 14(05 08 0B ) 16 18 1A 52 60( 11 12 0F 10) AC AE B2 B6 C0 C6 C8 C9 D6(01 04) DF 62 8D F4 F5(01 02) F6(00 01 02) 4D 4E 4F 15(01 06 11 13 14 28 29 32 48) F7(00 01 02 03) F8(00 01) F9 E4 E5 E6 E7 E8 E9 EA EB EF FD(00 01) FE(00 01 02) FF)mccs_ver(2.1)mswhql(1))"[..],
-        &b"(prot(monitor)type(LCD)model(ACER)cmds(01 02 03 07 0C E3 F3)vcp(02 04 05 08 0B 10 12 14(05 08 0B) 16 18 1A 52 60(01 03 11) 6C 6E 70 AC AE B2 B6 C6 C8 C9 CC(01 02 03 04 05 06 08 09 0A 0C 0D 14 16 1E) D6(01 05) DF)mswhql(1)asset_eep(40)mccs_ver(2.0))"[..],
-        &b"(prot(monitor)type(LED)model(25UM65)cmds(01 02 03 0C E3 F3)vcp(0203(10 00)0405080B0C101214(05 07 08 0B) 16181A5260(03 04)6C6E7087ACAEB6C0C6C8C9D6(01 04)DFE4E5E6E7E8E9EAEBED(00 10 20 40)EE(00 01)FE(01 02 03)FF)mswhql(1)mccs_ver(2.1))"[..], // example from ddcutil
-        &b"Prot(display) type(lcd) model(xxxxx) cmds(xxxxx) vcp(02 03 10 12 C8 DC(00 01 02 03 07) DF)mccs_ver(2.2) window1(type (PIP) area(25 25 1895 1175) max(640 480) min(10 10) window(10))vcpname(10(Brightness))"[..], // example from MCCS spec v2.2a
-        &br"vcpname(14((9300 6500 5500))44(Rotate)80(Do\x20this(On Off))82(Fixit))"[..], // example from access bus section 7
-        // tagged length with bracket and invalid utf8 seems like a worst case scenario here:
-        &b"edid bin(3(\xff) ))vdif bin(3 (abc))unknown bin(2(ab))"[..],
-    ];
-
-    for sample in &samples {
-        let caps = caps(sample).to_full_result().expect("Failed to parse capabilities");
-        println!("Caps: {:?}", caps);
+    for sample in ::testdata::test_data() {
+        let caps = parse_capabilities(sample).expect("Failed to parse capabilities");
+        println!("Caps: {:#?}", caps);
     }
 }

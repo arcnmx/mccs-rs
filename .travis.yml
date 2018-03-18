@@ -11,13 +11,15 @@ cache:
 env:
   matrix:
   - CARGO_FEATURES=
+  - CARGO_FEATURES=verbose-errors
+  - CARGO_DEFAULT_FEATURES=false
   global:
   - CARGO_QUIET=
   - CARGO_INCREMENTAL=0
   - secure: UHyGiny4uVYh0c/5ccsltu7p3H7I6uNxaCmxH5LfL4oUowfRZFslKhYptG8VDpErsieYKnMVWP902Fiu92JUSjkV6ndJCGgL68EIiC9KCDU+ux3r0B2htknkHh0Osl4oDu22Cn20Qg967Ph9kpVYoCLUZdaNwtmYRikAOZF5asHmma4w1DrfOeE4aAlo54EVkh5zDj3IYKqGeuN+jY/JEg7QYDtpOa78dLk9nLbgKNXkhIX9wgzZL+6tixs2CPhF7eO9OtVso16p6CpEtq6PQ9exAUJj48k6J9bGQw4vcIETRiJ88iN9UQs5kzZkJWJPPi7et3VO78U7u5tU8Pg1hniibwk3IsJdprPwHJ8eO3khFHjR4iNnfVxT+HHiaavfypUvHwNn2LAj9ZRFy80TKWFnJ3aOpwGcJU8uhw15Tnv5hHSL1KnIGC8GC75Oe25Pm/bBAbg/jOx9MrjP5vhJlf8eS5bGIWprrtKlgAVMNirhFol4XJdFIRI9o39d6mhk4quhBwxv8esk2Lr6J2ljLaEdQi/HpJ+m3lpr2Qyfha44HiW5rIu2YauOIifp/cUnu1u9Jeg9zU2i1S8rLszwBugfnsgl8WutjN8FN0Ep0bAcVOeUb4tQAIN0l3C6UgBjLSSmlkucKlci9dwQXZ7FKPNRg+Rf4u9z03jemr/dy5M=
   - secure: lyXC8buLkCd3V1+nUFJGV2XE1UfJrxtyU7gky1BKuaprMZwB9BDo8JnW6Oo15fy8WCwItRdgKWefTe0KM4+yqqqbVqAhN2OO/vdeCBa1WjSVnYSoTDdHweG3TubeuwR6rlE05dfK+VMPfybtnUCPEDovISndIOG8MbG4ZZ5w4EsC3faErurw9INcZrnGY4ARY5BTEEpRIlmngA4pIh6pMKd6DaTLPfIrhnWQ/v7C7DT8VaonLGDULGen5AqU9FR71N1m2CI9QAIVZiYe33+ZXZ1sKWxKLjG6i8h8rPoP8OtA66hqEn19d1Q5449lsEqxbZvplAivOLCXQx21Dd6x7ajpGQduXrhQns/FX54RVpEmt9O2EkXXFQ9NsrW1cjQPlH5d7JHFNOmp3gx0wtlK/FK/eZWTKo/RkI4s0k2m1vWr9k+EXGjYqQkI2tzDyPfK/Ks+rS1FqbHjblmTV18O4T5gAWvl9NVaY1MA6pVg+FPaboZKTBI9n9V+V6ed8PO+JOVIZErVSZYGZJnyIA5UqIeaDAzF44jfN8zlibvnpcc58h+wuncxXGfIJhbhOxdVadc2drLMOfyJG9iIf+rq5fyQW4lPywvN0WD4rK7DYgUTLXxivDt3rfTL54Rwpq+i7wu+4KjV0/UWUg3r3eouxn1Lhp2r15WEepELW5g0zZU=
 before_install:
-- curl -L https://github.com/arcnmx/ci/archive/0.1.tar.gz | tar -xzC $HOME && . $HOME/ci-0.1/src
+- curl -L https://github.com/arcnmx/ci/archive/0.2.tar.gz | tar -xzC $HOME && . $HOME/ci-0.2/src
 script:
 - cargo test
 - cargo build
@@ -27,7 +29,7 @@ deploy:
   on:
     tags: true
     all_branches: true
-    condition: "$TRAVIS_RUST_VERSION = stable"
+    condition: "$TRAVIS_RUST_VERSION = stable && -z $CARGO_FEATURES"
 before_deploy:
 - cargo doc
 - cargo package

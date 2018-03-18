@@ -17,6 +17,8 @@ maintenance = { status = "passively-maintained" }
 
 [dependencies]
 nom = "^3.2.1"
+void = { version = "^1.0.2", optional = true }
 
 [features]
+default = ["void"]
 verbose-errors = ["nom/verbose-errors"]
