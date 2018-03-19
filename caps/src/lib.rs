@@ -14,7 +14,7 @@ use std::str::{self, FromStr};
 use std::borrow::Cow;
 use std::io;
 use mccs::{Capabilities, Version, VcpDescriptor, UnknownTag, UnknownData};
-use nom::*;
+use nom::{digit, is_space, is_alphanumeric};
 
 #[cfg(test)]
 mod testdata;
