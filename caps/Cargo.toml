@@ -4,7 +4,7 @@ version = "0.0.1"
 authors = ["arcnmx"]
 
 description = "MCCS capability string parser"
-keywords = ["ddc/ci", "mccs", "vcp", "vesa"]
+keywords = ["ddc", "mccs", "vcp", "vesa"]
 
 documentation = "http://arcnmx.github.io/mccs-rs/mccs_caps"
 repository = "https://github.com/arcnmx/mccs-rs"
