@@ -467,7 +467,7 @@
 <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">borrow</span>::<span class="ident">Cow</span>;
 <span class="kw">use</span> <span class="ident">std</span>::<span class="ident">io</span>;
 <span class="kw">use</span> <span class="ident">mccs</span>::{<span class="ident">Capabilities</span>, <span class="ident">Version</span>, <span class="ident">VcpDescriptor</span>, <span class="ident">UnknownTag</span>, <span class="ident">UnknownData</span>};
-<span class="kw">use</span> <span class="ident">nom</span>::<span class="kw-2">*</span>;
+<span class="kw">use</span> <span class="ident">nom</span>::{<span class="ident">digit</span>, <span class="ident">is_space</span>, <span class="ident">is_alphanumeric</span>};
 
 <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">test</span>)]</span>
 <span class="kw">mod</span> <span class="ident">testdata</span>;
