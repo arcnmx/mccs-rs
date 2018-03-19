@@ -1,0 +1,198 @@
+groups:
+- id: preset
+  name: Preset Operations
+- id: display
+  name: Display Control
+- id: misc
+  name: Miscellaneous Functions
+vcp_features:
+- code: 0x00
+  version: ">=2.2 && <3.0"
+  group: preset
+  name: Code Page
+  desc: Code Page ID number.
+  type: table
+  interpretation: codepage
+  mandatory: true
+  access: rw
+  desc_long: >-
+    VCP Code 0x00 has been undefined and must be ignored, in all
+    MCCS versions prior to version 2.2 including version 3.0!
+    Starting with this revision VCP 0x00 shall be set to 0x00 until
+    otherwise defined in a future revision:
+
+    Code Pages 0x01 thru 0xDF are reserved and values in this range
+    shall be considered invalid.
+
+    Code Pages 0xE0 thru 0xFF may be used for Factory code
+    definitions and values in this range may be supported by factory
+    applications.
+
+    On power up or display reset, the value of VCP 0x00 shall be set to 0x00.
+- code: 0x04
+  version: ">=2.0"
+  group: preset
+  name: Restore Factory Defaults
+  desc: >-
+    Restore all factory presets including luminance / contrast,
+    geometry, color and TV defaults.
+  type: nc
+  interpretation: nonzerowrite
+  access: w
+  desc_long: >-
+    Any non-zero value causes defaults to be restored.
+
+    A value of zero must be ignored
+- code: 0x05
+  version: ">=2.0"
+  group: preset
+  name: Restore Factory Luminance / Contrast Defaults
+  desc: >-
+    Restores factory defaults for luminance and contrast
+    adjustments.
+  type: nc
+  interpretation: nonzerowrite
+  access: w
+  desc_long: >-
+    Any non-zero value causes defaults to be restored.
+
+    A value of zero must be ignored.
+- code: 0x06
+  version: ">=2.0"
+  group: preset
+  name: Restore Factory Geometry Defaults
+  desc: >-
+    Restore factory defaults for geometry adjustments.
+  type: nc
+  interpretation: nonzerowrite
+  access: w
+  desc_long: >-
+    Any non-zero value causes defaults to be restored.
+
+    A value of zero must be ignored.
+- code: 0x08
+  version: ">=2.0"
+  group: preset
+  name: Restore Factory Color Defaults
+  desc: >-
+    Restore factory defaults for color settings.
+  type: nc
+  interpretation: nonzerowrite
+  access: w
+  desc_long: >-
+    Any non-zero value causes defaults to be restored.
+
+    A value of zero must be ignored.
+- code: 0x0a
+  version: ">=2.0"
+  group: preset
+  name: Restore Factory TV Defaults
+  desc: >-
+    Restore factory defaults for TV functions.
+  type: nc
+  interpretation: nonzerowrite
+  access: w
+  desc_long: >-
+    Any non-zero value causes defaults to be restored.
+
+    A value of zero must be ignored.
+- code: 0xb0
+  version: ">=2.0"
+  group: preset
+  name: Settings
+  desc: >-
+    Store/Restore the user saved values for current mode.
+  type: nc
+  interpretation:
+  - value: 0x01
+    name: Store
+    desc: Store current settings in the monitor.
+  - value: 0x02
+    name: Restore
+    desc: Restore factory defaults for current mode.
+    desc_long: >-
+      If no factory defaults exist, then restore
+      user values for current mode.
+  - value: ">=0x03"
+    name: Reserved
+    desc: Reserved and must be ignored.
+  access: w
+- code: 0xdf
+  version: ">=2.0"
+  group: display
+  name: VCP Version
+  desc: Defines the version number of the MCCS standard recognized by the display.
+  type: nc
+  interpretation: vcpversion
+  access: r
+  mandatory: true
+  desc_long: >-
+    SH byte: defines the MCCS version number
+
+    SL byte: defines the MCCS revision number
+
+    e.g. 0x02 0x02 defines a MCCS level of 2.2
+- code: 0x60
+  version: ">=2.0 && <3.0"
+  group: misc
+  name: Input Select
+  desc: Allows the host to set one and only one input as "the source" and identify the current input setting.
+  type: nc
+  interpretation:
+  - value: 0x01
+    name: Analog 1
+    desc: Analog video (R/G/B) 1
+  - value: 0x02
+    name: Analog 2
+    desc: Analog video (R/G/B) 2
+  - value: 0x03
+    name: DVI 1
+    desc: Digital video (TMDS) 1
+  - value: 0x04
+    name: DVI 2
+    desc: Digital video (TMDS) 2
+  - value: 0x05
+    name: Composite 1
+    desc: Composite video 1
+  - value: 0x06
+    name: Composite 2
+    desc: Composite video 2
+  - value: 0x07
+    name: S-video 1
+  - value: 0x08
+    name: S-video 2
+  - value: 0x09
+    name: Tuner 1
+  - value: 0x0A
+    name: Tuner 2
+  - value: 0x0B
+    name: Tuner 3
+  - value: 0x0C
+    name: Component 1
+    desc: Component video (YPbPr / YCbCr) 1
+  - value: 0x0D
+    name: Component 2
+    desc: Component video (YPbPr / YCbCr) 2
+  - value: 0x0E
+    name: Component 3
+    desc: Component video (YPbPr / YCbCr) 3
+  - value: 0x0F
+    name: DisplayPort 1
+  - value: 0x10
+    name: DisplayPort 2
+  - value: 0x11
+    name: HDMI 1
+    desc: Digital Video (TMDS) 3
+  - value: 0x12
+    name: HDMI 2
+    desc: Digital Video (TMDS) 4
+  - value: ">=0x13"
+    name: Reserved
+    desc: Reserved and are un-assigned
+  access: rw
+- code: 0x60
+  version: ">=3.0"
+  group: misc
+  name: Input Select
+  type: table
+  access: rw

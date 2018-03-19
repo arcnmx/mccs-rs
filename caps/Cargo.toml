@@ -1,14 +1,14 @@
 [package]
-name = "mccs"
+name = "mccs-caps"
 version = "0.0.1"
 authors = ["arcnmx"]
 
-description = "VESA Monitor Control Command Set"
+description = "MCCS capability string parser"
 keywords = ["ddc/ci", "mccs", "vcp", "vesa"]
 
-documentation = "http://arcnmx.github.io/mccs-rs/mccs"
+documentation = "http://arcnmx.github.io/mccs-rs/mccs_caps"
 repository = "https://github.com/arcnmx/mccs-rs"
-readme = "README.md"
+readme = "../README.md"
 license = "MIT"
 
 [badges]
@@ -16,7 +16,5 @@ travis-ci = { repository = "arcnmx/mccs-rs" }
 maintenance = { status = "passively-maintained" }
 
 [dependencies]
-void = { version = "^1.0.2", optional = true }
-
-[features]
-default = ["void"]
+nom = "^3.2.1"
+mccs = { version = "^0.0.1", path = "../" }

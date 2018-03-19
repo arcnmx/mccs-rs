@@ -1,0 +1,26 @@
+[package]
+name = "mccs-db"
+version = "0.0.1"
+authors = ["arcnmx"]
+
+description = "MCCS specification VCP database"
+keywords = ["ddc/ci", "mccs", "vcp", "vesa"]
+
+documentation = "http://arcnmx.github.io/mccs-rs/mccs_db"
+repository = "https://github.com/arcnmx/mccs-rs"
+readme = "../README.md"
+license = "MIT"
+
+[badges]
+travis-ci = { repository = "arcnmx/mccs-rs" }
+maintenance = { status = "passively-maintained" }
+
+[dependencies]
+mccs = { version = "^0.0.1", path = "../" }
+serde = "^1.0.33"
+serde_derive = "^1.0.33"
+serde_yaml = "^0.7.3"
+nom = "^3.2.1"
+
+[dev-dependencies]
+mccs-caps = { version = "^0.0.1", path = "../caps" }

@@ -11,7 +11,6 @@ cache:
 env:
   matrix:
   - CARGO_FEATURES=
-  - CARGO_FEATURES=verbose-errors
   - CARGO_DEFAULT_FEATURES=false
   global:
   - CARGO_QUIET=
@@ -23,6 +22,12 @@ before_install:
 script:
 - cargo test
 - cargo build
+- cd $TRAVIS_BUILD_DIR/caps
+- CARGO_FEATURES= cargo test
+- CARGO_FEATURES= cargo build
+- cd $TRAVIS_BUILD_DIR/db
+- CARGO_FEATURES= cargo test
+- CARGO_FEATURES= cargo build
 deploy:
   provider: script
   script: 'true'
@@ -31,8 +36,20 @@ deploy:
     all_branches: true
     condition: "$TRAVIS_RUST_VERSION = stable && -z $CARGO_FEATURES"
 before_deploy:
+- cd $TRAVIS_BUILD_DIR
 - cargo doc
 - cargo package
+- cd $TRAVIS_BUILD_DIR/caps
+- CARGO_FEATURES= cargo doc
+- cd $TRAVIS_BUILD_DIR/db
+- CARGO_FEATURES= cargo doc
 after_deploy:
+- cd $TRAVIS_BUILD_DIR
 - cargo pages-publish
+- cargo publish
+- cd $TRAVIS_BUILD_DIR/caps
+- cargo package
+- cargo publish
+- cd $TRAVIS_BUILD_DIR/db
+- cargo package
 - cargo publish

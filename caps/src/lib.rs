@@ -1,13 +1,92 @@
+#![deny(missing_docs)]
+#![doc(html_root_url = "http://arcnmx.github.io/mccs-rs/")]
+
+//! MCCS compliant displays will report their supported capabilities in a string
+//! retrieved over DDC/CI. The format of this string is specified in the DDC
+//! specification, MCCS, and ACCESS.bus section 7. This crate parses the
+//! capability string into structured data.
+
+#[macro_use]
+extern crate nom;
+extern crate mccs;
+
 use std::str::{self, FromStr};
 use std::borrow::Cow;
 use std::io;
+use mccs::{Capabilities, Version, VcpDescriptor, UnknownTag, UnknownData};
 use nom::*;
 
-pub type Vcp = Vec<(u8, Option<Vec<u8>>)>;
-pub type VcpName<'a> = (u8, Option<Cow<'a, str>>, Option<Vec<Cow<'a, str>>>);
+#[cfg(test)]
+mod testdata;
+
+/// Parses a MCCS capability string.
+pub fn parse_capabilities<C: AsRef<[u8]>>(capability_string: C) -> io::Result<Capabilities> {
+    caps(capability_string.as_ref()).to_result().map_err(|e|
+        io::Error::new(io::ErrorKind::InvalidData, e.to_string())
+    ).map(|c| {
+        // TODO: check for multiple tags of anything only allowed once?
+
+        let mut caps = Capabilities::default();
+        for cap in &c {
+            match *cap {
+                Cap::Protocol(protocol) => caps.protocol = Some(protocol.into()),
+                Cap::Type(ty) => caps.ty = Some(ty.into()),
+                Cap::Model(model) => caps.model = Some(model.into()),
+                Cap::Commands(ref cmds) => caps.commands = cmds.clone(),
+                Cap::Whql(whql) => caps.ms_whql = Some(whql),
+                Cap::MccsVersion(major, minor) => caps.mccs_version = Some(Version::new(major, minor)),
+                Cap::Vcp(ref vcp) => for &(code, ref values) in vcp {
+                    caps.vcp_features.entry(code).or_insert_with(|| VcpDescriptor::default())
+                        .values.extend(values.iter().flat_map(|i| i).map(|&v| (v, None)))
+                },
+                Cap::VcpNames(..) => (), // wait until after processing vcp() section
+                Cap::Unknown(name, value) => caps.unknown_tags.push(UnknownTag {
+                    name: name.into(),
+                    data: UnknownData::String(value.into()),
+                }),
+                Cap::UnknownBytes(name, value) => caps.unknown_tags.push(UnknownTag {
+                    name: name.into(),
+                    data: UnknownData::StringBytes(value.into()),
+                }),
+                Cap::UnknownBinary(name, value) => caps.unknown_tags.push(UnknownTag {
+                    name: name.into(),
+                    data: UnknownData::Binary(value.into()),
+                }),
+                Cap::Edid(edid) => caps.edid = Some(edid.into()),
+                Cap::Vdif(vdif) => caps.vdif.push(vdif.into()),
+            }
+        }
+
+        for cap in c {
+            match cap {
+                Cap::VcpNames(vcp) => for (code, name, value_names) in vcp {
+                    if let Some(vcp) = caps.vcp_features.get_mut(&code) {
+                        if let Some(name) = name {
+                            vcp.name = Some(name.into())
+                        }
+
+                        if let Some(value_names) = value_names {
+                            for ((_, dest), name) in vcp.values.iter_mut().zip(value_names) {
+                                *dest = Some(name.into())
+                            }
+                        }
+                    } else {
+                        // TODO: should this be an error if it wasn't specified in vcp()?
+                    }
+                },
+                _ => (),
+            }
+        }
+
+        caps
+    })
+}
+
+type Vcp = Vec<(u8, Option<Vec<u8>>)>;
+type VcpName<'a> = (u8, Option<Cow<'a, str>>, Option<Vec<Cow<'a, str>>>);
 
 #[derive(Debug)]
-pub enum Cap<'a> {
+enum Cap<'a> {
     Protocol(&'a str),
     Type(&'a str),
     Model(&'a str),
@@ -21,12 +100,6 @@ pub enum Cap<'a> {
     UnknownBinary(&'a str, &'a [u8]),
     Edid(&'a [u8]),
     Vdif(&'a [u8]),
-}
-
-pub fn parse_capabilities(capability_string: &[u8]) -> io::Result<Vec<Cap>> {
-    caps(capability_string).to_result().map_err(|e|
-        io::Error::new(io::ErrorKind::InvalidData, e.to_string())
-    )
 }
 
 named!(hexarray<&[u8], Vec<u8>>,
@@ -316,10 +389,18 @@ named!(caps_inner<&[u8], Vec<Cap>>,
 );
 
 #[test]
-fn capability_string_samples() {
-    for sample in ::testdata::test_data() {
+fn samples_raw() {
+    for sample in testdata::test_data() {
         println!("Parsing caps: {}", String::from_utf8_lossy(sample));
         let caps = caps(sample).to_full_result().expect("Failed to parse capabilities");
         println!("Caps: {:?}", caps);
+    }
+}
+
+#[test]
+fn samples_high() {
+    for sample in testdata::test_data() {
+        let caps = parse_capabilities(sample).expect("Failed to parse capabilities");
+        println!("Caps: {:#?}", caps);
     }
 }

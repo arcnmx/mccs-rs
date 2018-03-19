@@ -5,12 +5,9 @@
 //! feature codes, and allows a display to broadcast its capabilities to the
 //! host.
 
-#[macro_use]
-extern crate nom;
 #[cfg(feature = "void")]
 extern crate void;
 
-use std::io;
 use std::fmt::{self, Display, Formatter};
 use std::str::FromStr;
 use std::collections::{BTreeMap, btree_map};
@@ -20,18 +17,67 @@ use void::Void;
 #[cfg(not(feature = "void"))]
 pub enum Void { }
 
-mod parse;
-#[cfg(test)]
-mod testdata;
-
 /// VCP feature code
 pub type FeatureCode = u8;
+
+/// VCP Value
+#[derive(Copy, Clone, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct Value {
+    /// Specifies the type of the value, continuous or non-continuous.
+    pub ty: u8,
+    /// The high byte of the maximum allowed value.
+    pub mh: u8,
+    /// The low byte of the maximum allowed value.
+    pub ml: u8,
+    /// The high byte of the value.
+    pub sh: u8,
+    /// The low byte of the value.
+    pub sl: u8,
+}
+
+impl Value {
+    /// Create a new `Value` from a scalar value.
+    ///
+    /// Other fields are left as default.
+    pub fn from_value(v: u16) -> Self {
+        Value {
+            sh: (v >> 8) as u8,
+            sl: v as u8,
+            .. Default::default()
+        }
+    }
+
+    /// Combines the value bytes into a single value.
+    pub fn value(&self) -> u16 {
+        ((self.sh as u16) << 8) | self.sl as u16
+    }
+
+    /// Combines the maximum value bytes into a single value.
+    pub fn maximum(&self) -> u16 {
+        ((self.mh as u16) << 8) | self.ml as u16
+    }
+
+    // TODO: pub fn ty(&self) -> ValueType { } 
+}
+
+impl fmt::Debug for Value {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.debug_struct("Value")
+            .field("maximum", &self.maximum())
+            .field("value", &self.value())
+            .field("ty", &self.ty)
+            .finish()
+    }
+}
 
 /// Extended Display Identification Data
 pub type EdidData = Vec<u8>;
 
 /// Video Display Information Format
 pub type VdifData = Vec<u8>;
+
+/// VCP feature value names
+pub type ValueNames = BTreeMap<u8, Option<String>>;
 
 /// Parsed display capabilities string.
 #[derive(Debug, Default, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -157,6 +203,16 @@ pub struct Version {
     pub minor: u8,
 }
 
+impl Version {
+    /// Create a new MCCS version from the specified version and revision.
+    pub fn new(major: u8, minor: u8) -> Self {
+        Version {
+            major: major,
+            minor: minor,
+        }
+    }
+}
+
 /// Descriptive information about a supported VCP feature code.
 #[derive(Debug, Default, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct VcpDescriptor {
@@ -165,7 +221,7 @@ pub struct VcpDescriptor {
     /// Allowed values for this feature, and optionally their names.
     ///
     /// This is used for non-continuous VCP types.
-    pub values: BTreeMap<u8, Option<String>>,
+    pub values: ValueNames,
 }
 
 impl VcpDescriptor {
@@ -193,78 +249,4 @@ pub enum UnknownData {
     StringBytes(Vec<u8>),
     /// Length-prefixed binary data
     Binary(Vec<u8>),
-}
-
-/// Parses a MCCS capability string.
-pub fn parse_capabilities<C: AsRef<[u8]>>(capability_string: C) -> io::Result<Capabilities> {
-    use parse::Cap;
-
-    parse::parse_capabilities(capability_string.as_ref()).map(|c| {
-        // TODO: check for multiple tags of anything only allowed once?
-
-        let mut caps = Capabilities::default();
-        for cap in &c {
-            match *cap {
-                Cap::Protocol(protocol) => caps.protocol = Some(protocol.into()),
-                Cap::Type(ty) => caps.ty = Some(ty.into()),
-                Cap::Model(model) => caps.model = Some(model.into()),
-                Cap::Commands(ref cmds) => caps.commands = cmds.clone(),
-                Cap::Whql(whql) => caps.ms_whql = Some(whql),
-                Cap::MccsVersion(major, minor) => caps.mccs_version = Some(Version {
-                    major: major,
-                    minor: minor,
-                }),
-                Cap::Vcp(ref vcp) => for &(code, ref values) in vcp {
-                    caps.vcp_features.entry(code).or_insert_with(|| VcpDescriptor::default())
-                        .values.extend(values.iter().flat_map(|i| i).map(|&v| (v, None)))
-                },
-                Cap::VcpNames(..) => (), // wait until after processing vcp() section
-                Cap::Unknown(name, value) => caps.unknown_tags.push(UnknownTag {
-                    name: name.into(),
-                    data: UnknownData::String(value.into()),
-                }),
-                Cap::UnknownBytes(name, value) => caps.unknown_tags.push(UnknownTag {
-                    name: name.into(),
-                    data: UnknownData::StringBytes(value.into()),
-                }),
-                Cap::UnknownBinary(name, value) => caps.unknown_tags.push(UnknownTag {
-                    name: name.into(),
-                    data: UnknownData::Binary(value.into()),
-                }),
-                Cap::Edid(edid) => caps.edid = Some(edid.into()),
-                Cap::Vdif(vdif) => caps.vdif.push(vdif.into()),
-            }
-        }
-
-        for cap in c {
-            match cap {
-                Cap::VcpNames(vcp) => for (code, name, value_names) in vcp {
-                    if let Some(vcp) = caps.vcp_features.get_mut(&code) {
-                        if let Some(name) = name {
-                            vcp.name = Some(name.into())
-                        }
-
-                        if let Some(value_names) = value_names {
-                            for ((_, dest), name) in vcp.values.iter_mut().zip(value_names) {
-                                *dest = Some(name.into())
-                            }
-                        }
-                    } else {
-                        // TODO: should this be an error if it wasn't specified in vcp()?
-                    }
-                },
-                _ => (),
-            }
-        }
-
-        caps
-    })
-}
-
-#[test]
-fn capability_string_samples() {
-    for sample in ::testdata::test_data() {
-        let caps = parse_capabilities(sample).expect("Failed to parse capabilities");
-        println!("Caps: {:#?}", caps);
-    }
 }
