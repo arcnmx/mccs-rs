@@ -65,11 +65,18 @@ impl Default for TableInterpretation {
 
 impl TableInterpretation {
     /// Formats a table for user display.
-    pub fn format(&self, table: &[u8]) -> String {
-        match *self {
+    ///
+    /// This can fail if the data is not in the expected format or has an
+    /// invalid length.
+    pub fn format(&self, table: &[u8]) -> Result<String, ()> {
+        Ok(match *self {
             TableInterpretation::Generic => format!("{:?}", table),
-            TableInterpretation::CodePage => format!("{}", table.get(0).map(|&v| v).unwrap_or(0)),
-        }
+            TableInterpretation::CodePage => if let Some(v) = table.get(0) {
+                format!("{}", v)
+            } else {
+                return Err(())
+            },
+        })
     }
 }
 
