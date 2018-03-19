@@ -16,5 +16,5 @@ travis-ci = { repository = "arcnmx/mccs-rs" }
 maintenance = { status = "passively-maintained" }
 
 [dependencies]
-nom = "^3.2.1"
 mccs = { version = "^0.0.1", path = "../" }
+nom = "^3.2.1"

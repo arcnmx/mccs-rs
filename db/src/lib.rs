@@ -266,7 +266,7 @@ impl Database {
     /// Create a new database from a specified database description YAML file.
     ///
     /// This format is not (yet) documented, but an example exists that
-    /// [describes the MCCS spec](https://github.com/arcnmx/mccs-rs/blob/master/data/mccs.yml).
+    /// [describes the MCCS spec](https://github.com/arcnmx/mccs-rs/blob/master/db/data/mccs.yml).
     pub fn from_database<R: io::Read>(database_yaml: R, mccs_version: &Version) -> io::Result<Self> {
         let db = serde_yaml::from_reader(database_yaml)
             .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
