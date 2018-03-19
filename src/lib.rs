@@ -14,6 +14,8 @@ use std::collections::{BTreeMap, btree_map};
 
 #[cfg(feature = "void")]
 use void::Void;
+
+/// An error type that cannot be encountered.
 #[cfg(not(feature = "void"))]
 pub enum Void { }
 
