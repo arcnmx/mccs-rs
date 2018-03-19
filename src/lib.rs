@@ -81,6 +81,9 @@ pub type VdifData = Vec<u8>;
 /// VCP feature value names
 pub type ValueNames = BTreeMap<u8, Option<String>>;
 
+// TODO: move Capabilities struct to mccs-caps? It doesn't need to be here other
+// than to keep mccs-db from depending on it directly. You can't really use one
+// without the other though...
 /// Parsed display capabilities string.
 #[derive(Debug, Default, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Capabilities {
