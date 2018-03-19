@@ -3,6 +3,12 @@
 [![travis-badge][]][travis] [![release-badge][]][cargo] [![docs-badge][]][docs] [![license-badge][]][license]
 
 `mccs` implements the VESA [Monitor Control Command Set](https://en.wikipedia.org/wiki/Monitor_Control_Command_Set).
+The library is split up into a few sub-crates:
+
+- [`mccs`](https://crates.io/crates/mccs) contains the common types describing the MCCS and VCP data structures.
+- [`mccs-caps`](https://crates.io/crates/mccs-caps) provides a parser for the MCCS capability string.
+- [`mccs-db`](https://crates.io/crates/mccs-db) contains the human-readable descriptions of VCP features from the
+  MCCS spec.
 
 ## [Documentation][docs]
 
