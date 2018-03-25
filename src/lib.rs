@@ -37,6 +37,18 @@ pub struct Value {
     pub sl: u8,
 }
 
+/// VCP feature type.
+#[repr(u8)]
+pub enum ValueType {
+    /// Sending a command of this type changes some aspect of the monitor's operation.
+    SetParameter = 0,
+    /// Sending a command of this type causes the monitor to initiate a
+    /// self-timed operation and then revert to its original state.
+    ///
+    /// Examples include display tests and degaussing.
+    Momentary = 1,
+}
+
 impl Value {
     /// Create a new `Value` from a scalar value.
     ///
@@ -59,7 +71,14 @@ impl Value {
         ((self.mh as u16) << 8) | self.ml as u16
     }
 
-    // TODO: pub fn ty(&self) -> ValueType { } 
+    /// VCP feature type, if recognized.
+    pub fn ty(&self) -> Result<ValueType, u8> {
+        match self.ty {
+            0 => Ok(ValueType::SetParameter),
+            1 => Ok(ValueType::Momentary),
+            ty => Err(ty),
+        }
+    }
 }
 
 impl fmt::Debug for Value {
