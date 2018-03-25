@@ -301,6 +301,25 @@
 <span id="255">255</span>
 <span id="256">256</span>
 <span id="257">257</span>
+<span id="258">258</span>
+<span id="259">259</span>
+<span id="260">260</span>
+<span id="261">261</span>
+<span id="262">262</span>
+<span id="263">263</span>
+<span id="264">264</span>
+<span id="265">265</span>
+<span id="266">266</span>
+<span id="267">267</span>
+<span id="268">268</span>
+<span id="269">269</span>
+<span id="270">270</span>
+<span id="271">271</span>
+<span id="272">272</span>
+<span id="273">273</span>
+<span id="274">274</span>
+<span id="275">275</span>
+<span id="276">276</span>
 </pre><pre class="rust ">
 <span class="attribute">#![<span class="ident">deny</span>(<span class="ident">missing_docs</span>)]</span>
 <span class="attribute">#![<span class="ident">doc</span>(<span class="ident">html_root_url</span> <span class="op">=</span> <span class="string">&quot;http://arcnmx.github.io/mccs-rs/&quot;</span>)]</span>
@@ -341,6 +360,18 @@
     <span class="kw">pub</span> <span class="ident">sl</span>: <span class="ident">u8</span>,
 }
 
+<span class="doccomment">/// VCP feature type.</span>
+<span class="attribute">#[<span class="ident">repr</span>(<span class="ident">u8</span>)]</span>
+<span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">ValueType</span> {
+    <span class="doccomment">/// Sending a command of this type changes some aspect of the monitor&#39;s operation.</span>
+    <span class="ident">SetParameter</span> <span class="op">=</span> <span class="number">0</span>,
+    <span class="doccomment">/// Sending a command of this type causes the monitor to initiate a</span>
+    <span class="doccomment">/// self-timed operation and then revert to its original state.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// Examples include display tests and degaussing.</span>
+    <span class="ident">Momentary</span> <span class="op">=</span> <span class="number">1</span>,
+}
+
 <span class="kw">impl</span> <span class="ident">Value</span> {
     <span class="doccomment">/// Create a new `Value` from a scalar value.</span>
     <span class="doccomment">///</span>
@@ -363,7 +394,14 @@
         ((<span class="self">self</span>.<span class="ident">mh</span> <span class="kw">as</span> <span class="ident">u16</span>) <span class="op">&lt;&lt;</span> <span class="number">8</span>) <span class="op">|</span> <span class="self">self</span>.<span class="ident">ml</span> <span class="kw">as</span> <span class="ident">u16</span>
     }
 
-    <span class="comment">// TODO: pub fn ty(&amp;self) -&gt; ValueType { } </span>
+    <span class="doccomment">/// VCP feature type, if recognized.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">ty</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) <span class="op">-&gt;</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">ValueType</span>, <span class="ident">u8</span><span class="op">&gt;</span> {
+        <span class="kw">match</span> <span class="self">self</span>.<span class="ident">ty</span> {
+            <span class="number">0</span> <span class="op">=&gt;</span> <span class="prelude-val">Ok</span>(<span class="ident">ValueType</span>::<span class="ident">SetParameter</span>),
+            <span class="number">1</span> <span class="op">=&gt;</span> <span class="prelude-val">Ok</span>(<span class="ident">ValueType</span>::<span class="ident">Momentary</span>),
+            <span class="ident">ty</span> <span class="op">=&gt;</span> <span class="prelude-val">Err</span>(<span class="ident">ty</span>),
+        }
+    }
 }
 
 <span class="kw">impl</span> <span class="ident">fmt</span>::<span class="ident">Debug</span> <span class="kw">for</span> <span class="ident">Value</span> {

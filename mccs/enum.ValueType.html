@@ -4,10 +4,10 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="rustdoc">
-    <meta name="description" content="API documentation for the Rust `EdidData` type in crate `mccs`.">
-    <meta name="keywords" content="rust, rustlang, rust-lang, EdidData">
+    <meta name="description" content="API documentation for the Rust `ValueType` enum in crate `mccs`.">
+    <meta name="keywords" content="rust, rustlang, rust-lang, ValueType">
 
-    <title>mccs::EdidData - Rust</title>
+    <title>mccs::ValueType - Rust</title>
 
     <link rel="stylesheet" type="text/css" href="../normalize.css">
     <link rel="stylesheet" type="text/css" href="../rustdoc.css">
@@ -17,7 +17,7 @@
     
     
 </head>
-<body class="rustdoc type">
+<body class="rustdoc enum">
     <!--[if lte IE 8]>
     <div class="warning">
         This old browser is unsupported and will most likely display funky
@@ -30,7 +30,7 @@
     <nav class="sidebar">
         <div class="sidebar-menu">&#9776;</div>
         
-        <p class='location'>Type Definition EdidData</p><div class="sidebar-elems"><p class='location'><a href='index.html'>mccs</a></p><script>window.sidebarCurrent = {name: 'EdidData', ty: 'type', relpath: ''};</script><script defer src="sidebar-items.js"></script></div>
+        <p class='location'>Enum ValueType</p><div class="sidebar-elems"><div class="block items"><a class="sidebar-title" href="#variants">Variants</a><div class="sidebar-links"><a href="#variant.SetParameter">SetParameter</a><a href="#variant.Momentary">Momentary</a></div></div><p class='location'><a href='index.html'>mccs</a></p><script>window.sidebarCurrent = {name: 'ValueType', ty: 'enum', relpath: ''};</script><script defer src="sidebar-items.js"></script></div>
     </nav>
 
     <nav class="sub">
@@ -45,12 +45,23 @@
     </nav>
 
     <section id='main' class="content">
-<h1 class='fqn'><span class='in-band'>Type Definition <a href='index.html'>mccs</a>::<wbr><a class="type" href=''>EdidData</a></span><span class='out-of-band'><span id='render-detail'>
+<h1 class='fqn'><span class='in-band'>Enum <a href='index.html'>mccs</a>::<wbr><a class="enum" href=''>ValueType</a></span><span class='out-of-band'><span id='render-detail'>
                    <a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">
                        [<span class='inner'>&#x2212;</span>]
                    </a>
-               </span><a class='srclink' href='../src/mccs/lib.rs.html#95' title='goto source code'>[src]</a></span></h1>
-<pre class='rust typedef'>type EdidData = <a class="struct" href="https://doc.rust-lang.org/nightly/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.u8.html">u8</a>&gt;;</pre><div class='docblock'><p>Extended Display Identification Data</p>
+               </span><a class='srclink' href='../src/mccs/lib.rs.html#42-50' title='goto source code'>[src]</a></span></h1>
+<pre class='rust enum'><div class="docblock attributes">#[repr(u8)]
+</div>pub enum ValueType {
+    SetParameter,
+    Momentary,
+}</pre><div class='docblock'><p>VCP feature type.</p>
+</div><h2 id='variants' class='variants small-section-header'>
+                   Variants<a href='#variants' class='anchor'></a></h2>
+<span id="variant.SetParameter" class="variant small-section-header"><a href="#variant.SetParameter" class="anchor field"></a><span id='SetParameter.v' class='invisible'><code>SetParameter</code></span></span><div class='docblock'><p>Sending a command of this type changes some aspect of the monitor&#39;s operation.</p>
+</div><span id="variant.Momentary" class="variant small-section-header"><a href="#variant.Momentary" class="anchor field"></a><span id='Momentary.v' class='invisible'><code>Momentary</code></span></span><div class='docblock'><p>Sending a command of this type causes the monitor to initiate a
+self-timed operation and then revert to its original state.</p>
+
+<p>Examples include display tests and degaussing.</p>
 </div></section>
     <section id='search' class="content hidden"></section>
 
