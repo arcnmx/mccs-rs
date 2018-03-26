@@ -286,24 +286,46 @@ impl Database {
     /// Filter out any feature codes or values that are not supported by the
     /// specified display.
     pub fn apply_capabilities(&mut self, caps: &Capabilities) {
-        let entries = mem::replace(&mut self.entries, Default::default());
-        self.entries.extend(entries.into_iter().filter_map(|(code, desc)| match (caps.vcp_features.get(&code), code, desc) {
-            (Some(vcp), code, mut desc) => {
-                if let Some(ref name) = vcp.name {
-                    desc.name = Some(name.clone());
+        let mut entries = mem::replace(&mut self.entries, Default::default());
+        self.entries.extend(caps.vcp_features.iter().map(|(code, desc)| match (entries.remove(code), *code, desc) {
+            (Some(mut mccs), code, cap) => {
+                if let Some(ref name) = cap.name {
+                    mccs.name = Some(name.clone());
                 }
 
-                if let ValueType::NonContinuous { ref mut values, .. } = desc.ty {
+                if let ValueType::NonContinuous { ref mut values, .. } = mccs.ty {
                     let mut full = mem::replace(values, Default::default());
-                    values.extend(vcp.values.iter().map(|(&value, caps_name)| match full.remove(&value) {
+                    values.extend(cap.values.iter().map(|(&value, caps_name)| match full.remove(&value) {
                         Some(name) => (value, caps_name.clone().or(name)),
                         None => (value, caps_name.clone()),
                     }));
                 }
 
-                Some((code, desc))
+                (code, mccs)
             },
-            _ => None,
+            (None, code, cap) => {
+                let desc = Descriptor {
+                    name: cap.name.clone(),
+                    description: None,
+                    group: None,
+                    code: code,
+                    ty: if cap.values.is_empty() {
+                        ValueType::Continuous {
+                            interpretation: ValueInterpretation::Continuous,
+                        }
+                    } else {
+                        ValueType::NonContinuous {
+                            interpretation: ValueInterpretation::NonContinuous,
+                            values: cap.values.clone(),
+                        }
+                    },
+                    access: Access::ReadWrite,
+                    mandatory: false,
+                    interacts_with: Vec::new(),
+                };
+
+                (code, desc)
+            },
         }));
     }
 
