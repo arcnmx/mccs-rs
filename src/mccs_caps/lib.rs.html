@@ -450,6 +450,7 @@
 <span id="404">404</span>
 <span id="405">405</span>
 <span id="406">406</span>
+<span id="407">407</span>
 </pre><pre class="rust ">
 <span class="attribute">#![<span class="ident">deny</span>(<span class="ident">missing_docs</span>)]</span>
 <span class="attribute">#![<span class="ident">doc</span>(<span class="ident">html_root_url</span> <span class="op">=</span> <span class="string">&quot;http://arcnmx.github.io/mccs-rs/&quot;</span>)]</span>
@@ -669,6 +670,7 @@
             ) <span class="op">|</span>
             <span class="ident">caps_inner</span> <span class="comment">// hack for Apple Cinema Display</span>
         ) <span class="op">&gt;&gt;</span>
+        <span class="macro">is_a</span><span class="macro">!</span>(<span class="kw-2">&amp;</span><span class="string">b&quot;\0 &quot;</span>[..]) <span class="op">&gt;&gt;</span>
         <span class="macro">eof</span><span class="macro">!</span>() <span class="op">&gt;&gt;</span>
         (<span class="ident">v</span>)
     )
