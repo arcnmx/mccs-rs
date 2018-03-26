@@ -216,6 +216,7 @@ named!(caps<&[u8], Vec<Cap>>,
             ) |
             caps_inner // hack for Apple Cinema Display
         ) >>
+        is_a!(&b"\0 "[..]) >>
         eof!() >>
         (v)
     )

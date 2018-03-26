@@ -2,7 +2,7 @@ pub fn test_data() -> Vec<&'static [u8]> {
     [
         // monitors I have lying around
         &b"(prot(monitor)type(lcd)27UD58cmds(01 02 03 0C E3 F3)vcp(02 04 05 08 10 12 14(05 08 0B ) 16 18 1A 52 60( 11 12 0F 10) AC AE B2 B6 C0 C6 C8 C9 D6(01 04) DF 62 8D F4 F5(01 02) F6(00 01 02) 4D 4E 4F 15(01 06 11 13 14 28 29 32 48) F7(00 01 02 03) F8(00 01) F9 E4 E5 E6 E7 E8 E9 EA EB EF FD(00 01) FE(00 01 02) FF)mccs_ver(2.1)mswhql(1))"[..],
-        &b"(prot(monitor)type(LCD)model(ACER)cmds(01 02 03 07 0C E3 F3)vcp(02 04 05 08 0B 10 12 14(05 08 0B) 16 18 1A 52 60(01 03 11) 6C 6E 70 AC AE B2 B6 C6 C8 C9 CC(01 02 03 04 05 06 08 09 0A 0C 0D 14 16 1E) D6(01 05) DF)mswhql(1)asset_eep(40)mccs_ver(2.0))"[..],
+        &b"(prot(monitor)type(LCD)model(ACER)cmds(01 02 03 07 0C E3 F3)vcp(02 04 05 08 0B 10 12 14(05 08 0B) 16 18 1A 52 60(01 03 11) 6C 6E 70 AC AE B2 B6 C6 C8 C9 CC(01 02 03 04 05 06 08 09 0A 0C 0D 14 16 1E) D6(01 05) DF)mswhql(1)asset_eep(40)mccs_ver(2.0))\0"[..],
         // example from ddcutil
         &b"(prot(monitor)type(LED)model(25UM65)cmds(01 02 03 0C E3 F3)vcp(0203(10 00)0405080B0C101214(05 07 08 0B) 16181A5260(03 04)6C6E7087ACAEB6C0C6C8C9D6(01 04)DFE4E5E6E7E8E9EAEBED(00 10 20 40)EE(00 01)FE(01 02 03)FF)mswhql(1)mccs_ver(2.1))"[..],
         // example from MCCS spec v2.2a
