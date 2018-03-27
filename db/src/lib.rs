@@ -100,7 +100,7 @@ impl ValueInterpretation {
             ValueInterpretation::Continuous => format!("{} / {}", value.value(), value.maximum()),
             ValueInterpretation::NonContinuous => format!("{}", value.value()),
             ValueInterpretation::NonZeroWrite => if value.sl == 0 { "unset" } else { "set" }.into(),
-            ValueInterpretation::VcpVersion => format!("{}", Version::new(value.mh, value.ml)),
+            ValueInterpretation::VcpVersion => format!("{}", Version::new(value.sh, value.sl)),
         }
     }
 }
