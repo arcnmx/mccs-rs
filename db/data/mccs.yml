@@ -1,6 +1,8 @@
 groups:
 - id: preset
   name: Preset Operations
+- id: image
+  name: Image Adjustment
 - id: display
   name: Display Control
 - id: misc
@@ -117,6 +119,1358 @@ vcp_features:
     name: Reserved
     desc: Reserved and must be ignored.
   access: w
+- code: 0x0b
+  version: ">=2.2 && <3.0"
+  group: image
+  name: User Color Temperature Increment
+  desc: >-
+    Sets the minimum increment in which the display can adjust the
+    color temperature.
+  desc_long: >-
+    In Version 2.2 forward, except Version 3.0, VCP 0x0C defines the
+    User Color Temperature when selected using VCP 0x14.
+
+    Setting 0x14 to User 1, 2, or 3, recalls values for and enables VCP
+    codes 0x0B and 0x0C.
+
+    Values of 0 and > 5000 are invalid and must be ignored.
+  type: nc # eh but it's a range
+  interpretation: colortemperature # 1 ~ 0x1389 °K
+  access: r
+  interacts:
+  - 0x14
+- code: 0x0c
+  version: ">=2.2 && <3.0"
+  group: image
+  name: User Color Temperature
+  desc: >-
+    A value of 0 must be treated as a request for a color temperature of
+    3000° K. Values greater than 0 must be used as a multiplier of the
+    color temperature increment (read using VCP 0x0B) and the result
+    added to the base value of 3000°K
+  desc_long: >-
+    VCP codes 0x0B and 0x0C define the User Color Temperature when selected using VCP 0x14.
+
+    If the display is unable to achieve the requested color temperature,
+    then it must move to the closest possible temperature.
+
+    Example:
+    If VCP 0x0B returns a value of 50° K and VCP code 0x0C sends a
+    value of 50 (decimal) then the display must interpret this as a
+    request to adjust the color temperature to 5500° K
+    (3000 + (50 * 50)) K = 5500° K
+
+    NOTE:
+    Applications using this function are recommended to read the actual
+    color temperature after using this command and taking appropriate
+    action.
+
+    This control is only recommended if the display can produce a
+    continuously (at defined increment, see VCP code 0x0B) variable
+    color temperature.
+  type: c
+  interpretation: colortemperature # °K
+  access: rw
+  interacts:
+  - 0x14
+- code: 0x0e
+  version: ">=2.0"
+  group: image
+  name: Clock
+  desc: >-
+    Increasing (decreasing) this value will increase (decrease) the video
+    sampling clock frequency
+  type: c
+  access: rw
+- code: 0x10
+  version: ">=2.0"
+  group: image
+  name: Luminance
+  desc: >-
+    Increasing (decreasing) this value will increase (decrease) the
+    Luminance of the image.
+  type: c
+  access: rw
+- code: 0x10
+  version: "<2.2"
+  name: Brightness
+- code: 0x11
+  version: ">=2.1"
+  group: image
+  name: Flesh Tone Enhancement
+  interpretation: fleshtoneenhancement
+  desc: >-
+    This control allows for selection of contrast enhancement
+    algorithms.
+  desc_long: >-
+    Data size: Write = 2 bytes / Read = 4 bytes
+
+    A possible value is selected by setting the
+    corresponding bit = 1.
+
+    On a write a bit set = 1 in the SH-SL bytes must select the required
+    level of enhancement.
+
+    NOTE: setting more than one bit = 1 is invalid and must be ignored
+    by the display.
+
+    On a read the MH-ML bytes contain the flags corresponding to
+    those functions that are supported by the display. The SH-SL bytes
+    contain the bit field with the appropriate bit set to indicate the
+    current status of the display.
+
+    The following table defines the SH byte, and the MH byte for read
+    operations only.
+
+    Bit 7 =  No enhancement
+
+    Bit 6 = Enhancement 1: Enhancement except for
+    automatically detected regions of “skin
+    tone”
+
+    Bit 5 = Enhancement 2: Enhancement including
+    “skin tone” regions
+
+    Bit 4 = Demo mode: Enhancement is applied to
+    part of the displayed image only
+
+    Bit 3 =  User mode
+
+    Bits 2 ~ 0 = Reserved, do not use
+
+    SL-ML bits are reserved, do not use.
+  type: nc
+  access: rw
+- code: 0x12
+  version: ">=2.0"
+  group: image
+  name: Contrast
+  interpretation: generic
+  desc: >-
+    Increasing (decreasing) this value will increase (decrease) the
+    Contrast of the image.
+  desc_long: >-
+    NOTE:
+
+    1) The actual range of contrast over which this control applies is
+    defined by the manufacturer.
+
+    2) Care should be taken to avoid the situation where the contrast
+    ratio approaches 0 … this may be non-recoverable since user will
+    not be able to see the image.
+  type: c
+  access: rw
+- code: 0x13
+  version: ">=2.1"
+  group: image
+  name: Backlight Control
+  interpretation: backlightcontrol
+  desc: >-
+      Increasing (decreasing) this value in the SL byte will increase
+      (decrease) the specified Backlight Control value.
+  desc_long: >-
+      This VCP code has been deprecated.
+      It must NOT be implemented in new designs!
+
+      Support for separate Backlight Level controls are provided by VCP
+      codes 0x6B, 0x6D, 0x6F, and 0x71.
+      The following description of this VCP in versions prior to V2.2 is
+      provided for reference ONLY!
+
+      The SH byte defines whether operation should be performed as a
+      white adjustment or as a red / green or blue backlight adjustment
+      when these are separate light sources (e.g. LEDs)
+
+      When read, the MH-Ml bytes contain the flags corresponding to
+      those functions supported by the display. The SH-SL bytes contain
+      the bit field with the appropriate bit set to indicate the current status
+      of the display.
+
+      The following table defines the SH byte, and the MH byte for read
+      operations only.
+
+      0x00 = A white adjustment
+
+      0x01 = A red adjustment
+
+      0x02 = A green adjustment
+
+      0x03 = A blue adjustment
+
+      ≥ 0x04 = Reserved, must be ignored
+
+      NOTE: The adjustment range (0 → 255) will be mapped to the
+      actual adjustment range defined by the display manufacturer. A
+      value of 0 corresponds to the lowest value and 255 the highest
+      value.
+  type: c
+  access: rw
+- code: 0x13
+  version: ">=2.2 && <3.0" # probably || >3.0
+  deprecated: true
+- code: 0x14
+  version: ">=2.1"
+  group: image
+  name: Backlight Control
+  interpretation: backlightcontrol
+  desc: >-
+    Select a specified color temperature.
+  desc_long: >-
+    This is a 2 byte value, the MH
+    byte defines the tolerance associated with any preset … this is fixed
+    by the display manufacturer. If no tolerance level is specified, the
+    presets must be interpreted as relative values supporting a scale
+    which can move to warmer (lower color temperature) or cooler
+    (higher color temperature).
+
+    MH 0x00 = No tolerance is specified, treat as relative scale.
+
+    MH 0x01 = A tolerance of 1% is specified
+
+    MH 0x02 = A tolerance of 2% is specified
+
+    MH 0x03 = ⇓
+
+    MH 0x09 = A tolerance of 9% is specified
+
+    MH 0x0A = A tolerance of 10% is specified
+
+    ≥ MH 0x0B = Reserved, must be ignored
+
+    If MH byte ≠ 0x00
+
+    SL 0x00 = Reserved, must be ignored
+
+    SL 0x01 = sRGB
+
+    SL 0x02 = Display native
+
+    SL 0x03 = 4000° K
+
+    SL 0x04 = 5000° K
+
+    SL 0x05 = 6500° K
+
+    SL 0x06 = 7500° K
+
+    SL 0x07 = 8200° K
+
+    SL 0x08 = 9300° K
+
+    SL 0x09 = 10000° K
+
+    SL 0x0A = 11500° K
+
+    SL 0x0B = User 1
+
+    SL 0x0C = User 2
+
+    SL 0x0D = User 3
+
+    SL ≥ 0x0E = Reserved, must be ignored
+
+    If MH byte = 0x00
+
+    SL 0x00 = Reserved, must be ignored
+
+    SL 0x01 = sRGB
+
+    SL 0x02 = Display native
+
+    SL 0x03 = Warmer
+
+    SL 0x04 = ⇑
+
+    SL 0x05 = ⇑
+
+    SL 0x06 = ⎪
+
+    SL 0x07 = ⎪
+
+    SL 0x08 = ⇓
+
+    SL 0x09 = ⇓
+
+    SL 0x0A = Cooler
+
+    SL 0x0B = User 1
+
+    SL 0x0C = User 2
+
+    SL 0x0D = User 3
+
+    SL ≥ 0x0E = Reserved, must be ignored
+
+    NOTE: In all cases a read operation must return the nominal color
+    temperature and tolerance associated with the value.
+
+    Setting 0x14 to User 1, 2, or 3, recalls values for and enables VCP
+    codes 0x0B and 0x0C. In addition all VCP registers must reflect the
+    register change required to match the color change. Consider 0x16,
+    0x18, 0x1A, 0x6C, 0x6E, and 0x70. These changes must be reported using
+    VCP 0x02 and 0x52.
+
+    Example:
+    A tolerance specified as 5% and preset 0x09 is selected then color
+    temperature is specified as 10000° K ± 5%.
+  interacts:
+  - 0x16
+  - 0x18
+  - 0x1a
+  - 0x6c
+  - 0x6e
+  - 0x70
+  - 0x0b
+  - 0x0c
+  type: c
+  access: rw
+- code: 0x16
+  version: ">=2.0"
+  group: image
+  name: Video Gain (Drive): Red
+  interpretation: generic
+  desc: >-
+    Increasing (decreasing) this value will increase (decrease) the
+    luminance of red pixels.
+  desc_long: >-
+    The value returned must be an indication of the actual red gain at
+    the current color temperature and not be normalized.
+  type: c
+  access: rw
+- code: 0x17
+  version: ">=2.0"
+  group: image
+  name: User Color Vision Compensation
+  interpretation: generic
+  desc: >-
+    Increasing (decreasing) this value will increase (decrease) the
+    degree of compensation.
+  desc_long: >-
+    NOTE: This is intended to help user suffering from the form of
+    color deficiency in which red colors are poorly seen.
+  type: c
+  access: rw
+- code: 0x18
+  version: ">=2.0"
+  group: image
+  name: Video Gain (Drive): Green
+  interpretation: generic
+  desc: >-
+    Increasing (decreasing) this value will increase (decrease) the
+    luminance of green pixels.
+  desc_long: >-
+    The value returned must be an indication of the actual green gain at
+    the current color temperature and not be normalized.
+  type: c
+  access: rw
+- code: 0x1a
+  version: ">=2.0"
+  group: image
+  name: Video Gain (Drive): Blue
+  interpretation: generic
+  desc: >-
+    Increasing (decreasing) this value will increase (decrease) the
+    luminance of blue pixels.
+  desc_long: >-
+    The value returned must be an indication of the actual blue gain at
+    the current color temperature and not be normalized.
+  type: c
+  access: rw
+- code: 0x1c
+  version: ">=2.0"
+  group: image
+  name: Focus
+  interpretation: generic
+  desc: >-
+    Increasing (decreasing) this value will adjust the focus of the image.
+  type: c
+  access: rw
+- code: 0x1e
+  version: ">=2.0"
+  group: image
+  name: Auto Setup
+  interpretation: generic
+  desc: >-
+    Perform auto setup function (H/V position, clock, clock phase, A/D
+    converter, etc.)
+  desc_long: >-
+    SL 0x00 = Auto setup is not active
+
+    SL 0x01 = Perform / performing auto setup
+
+    SL 0x02 = Enable continuous / periodic auto setup
+
+    SL ≥ 0x03 = Reserved, must be ignored
+
+    NOTE: A value of 0x02 (when supported) must cause the display to
+    either continuously or periodically (event or timer driven) perform
+    an auto setup. Cancel by writing a value of either 0x01 or 0x00.
+  type: nc
+  access: rw
+- code: 0x1f
+  version: ">=2.1"
+  group: image
+  name: Auto Color Setup
+  interpretation: generic
+  desc: >-
+    Perform auto color setup function (R / G / B gain and offset, A/D
+    setup, etc.)
+  desc_long: >-
+    SL 0x00 = Auto color setup is not active
+
+    SL 0x01 = Perform / performing auto color setup
+
+    SL 0x02 = Enable continuous / periodic auto color setup
+
+    SL ≥ 0x03 = Reserved, must be ignored
+
+    NOTE: A value of 0x02 (when supported) must cause the display to
+    either continuously or periodically (event or timer driven) perform
+    an auto color setup.
+  type: nc
+  access: rw
+- code: 0x2e
+  version: ">=2.1"
+  group: image
+  name: Gray Scale Expansion
+  interpretation: generic
+  desc: >-
+    Expands the gray scale either in the near white region or the near
+    black region (or both).
+  desc_long: >-
+    SH = Near white region
+
+    SH 0x00 = No white region expansion
+
+    SH 0x01 = First level of expansion
+
+    SH 0x02 = Second level of expansion
+
+    SH 0x03 = Third level of expansion
+
+    SH ≥ 0x04 = Reserved, must be ignored
+
+    SL = Near black region
+
+    SL 0x00 = No black region expansion
+
+    SL 0x01 = First level of expansion
+
+    SL 0x02 = Second level of expansion
+
+    SL 0x03 = Third level of expansion
+
+    SL ≥ 0x04 = Reserved, must be ignored
+  type: nc
+  access: rw
+- code: 0x3e
+  version: ">=2.0"
+  group: image
+  name: Clock Phase
+  interpretation: generic
+  desc: >-
+    Increasing (decreasing) this value will increase (decrease) the phase
+    shift of the sampling clock.
+  type: c
+  access: rw
+- code: 0x56
+  version: ">=2.0"
+  group: image
+  name: Horizontal Moiré
+  interpretation: generic
+  desc: >-
+    Increasing (decreasing) this value controls the horizontal picture
+    moiré cancellation.
+  type: c
+  access: rw
+- code: 0x58
+  version: ">=2.0"
+  group: image
+  name: Vertical Moiré
+  interpretation: generic
+  desc: >-
+    Increasing (decreasing) this value controls the vertical picture
+    moiré cancellation.
+  type: c
+  access: rw
+- code: 0x59
+  version: ">=2.1"
+  group: image
+  name: 6 Axis Saturation Control: Red
+  interpretation: generic
+  desc: >-
+    Adjust the red saturation for 6-axis color
+  desc_long: >-
+    SL > 0x7F = Causes an increase in red saturation
+
+    SL = 0x7F = The nominal (default) value
+
+    SL < 0x7F Causes a decrease in red saturation
+
+    If set = 0x7F then display must make no change to the red saturation
+    of the incoming signal.
+
+    If set ≠ 0x7F , then writing a value = 0x7F must cause the display to
+    return to its nominal (default) setting for red saturation.
+
+    The ± 0x7F range must be linearly mapped to the actual adjustment
+    range.
+  type: c
+  access: rw
+- code: 0x5a
+  version: ">=2.1"
+  group: image
+  name: 6 Axis Saturation Control: Yellow
+  interpretation: generic
+  desc: >-
+    Adjust the yellow saturation for 6-axis color
+  desc_long: >-
+    SL > 0x7F = Causes an increase in yellow saturation
+
+    SL = 0x7F = The nominal (default) value
+
+    SL < 0x7F Causes a decrease in yellow saturation
+
+    If set = 0x7F then display must make no change to the yellow saturation
+    of the incoming signal.
+
+    If set ≠ 0x7F , then writing a value = 0x7F must cause the display to
+    return to its nominal (default) setting for yellow saturation.
+
+    The ± 0x7F range must be linearly mapped to the actual adjustment
+    range.
+  type: c
+  access: rw
+- code: 0x5b
+  version: ">=2.1"
+  group: image
+  name: 6 Axis Saturation Control: Green
+  interpretation: generic
+  desc: >-
+    Adjust the green saturation for 6-axis color
+  desc_long: >-
+    SL > 0x7F = Causes an increase in green saturation
+
+    SL = 0x7F = The nominal (default) value
+
+    SL < 0x7F Causes a decrease in green saturation
+
+    If set = 0x7F then display must make no change to the green saturation
+    of the incoming signal.
+
+    If set ≠ 0x7F , then writing a value = 0x7F must cause the display to
+    return to its nominal (default) setting for green saturation.
+
+    The ± 0x7F range must be linearly mapped to the actual adjustment
+    range.
+  type: c
+  access: rw
+- code: 0x5c
+  version: ">=2.1"
+  group: image
+  name: 6 Axis Saturation Control: Cyan
+  interpretation: generic
+  desc: >-
+    Adjust the cyan saturation for 6-axis color
+  desc_long: >-
+    SL > 0x7F = Causes an increase in cyan saturation
+
+    SL = 0x7F = The nominal (default) value
+
+    SL < 0x7F Causes a decrease in cyan saturation
+
+    If set = 0x7F then display must make no change to the cyan saturation
+    of the incoming signal.
+
+    If set ≠ 0x7F , then writing a value = 0x7F must cause the display to
+    return to its nominal (default) setting for cyan saturation.
+
+    The ± 0x7F range must be linearly mapped to the actual adjustment
+    range.
+  type: c
+  access: rw
+- code: 0x5d
+  version: ">=2.1"
+  group: image
+  name: 6 Axis Saturation Control: Blue
+  interpretation: generic
+  desc: >-
+    Adjust the blue saturation for 6-axis color
+  desc_long: >-
+    SL > 0x7F = Causes an increase in blue saturation
+
+    SL = 0x7F = The nominal (default) value
+
+    SL < 0x7F Causes a decrease in blue saturation
+
+    If set = 0x7F then display must make no change to the blue saturation
+    of the incoming signal.
+
+    If set ≠ 0x7F , then writing a value = 0x7F must cause the display to
+    return to its nominal (default) setting for blue saturation.
+
+    The ± 0x7F range must be linearly mapped to the actual adjustment
+    range.
+  type: c
+  access: rw
+- code: 0x5e
+  version: ">=2.1"
+  group: image
+  name: 6 Axis Saturation Control: Magenta
+  interpretation: generic
+  desc: >-
+    Adjust the magenta saturation for 6-axis color
+  desc_long: >-
+    SL > 0x7F = Causes an increase in magenta saturation
+
+    SL = 0x7F = The nominal (default) value
+
+    SL < 0x7F Causes a decrease in magenta saturation
+
+    If set = 0x7F then display must make no change to the magenta saturation
+    of the incoming signal.
+
+    If set ≠ 0x7F , then writing a value = 0x7F must cause the display to
+    return to its nominal (default) setting for magenta saturation.
+
+    The ± 0x7F range must be linearly mapped to the actual adjustment
+    range.
+  type: c
+  access: rw
+- code: 0x6b
+  version: ">=2.2 && <3.0"
+  group: image
+  name: Backlight Level: White
+  interpretation: generic
+  desc: >-
+    Increasing (decreasing) this value will increase (decrease) the White
+    backlight level of the image.
+  desc_long: >-
+    NOTE:
+
+    1) The actual range of white backlight level over which this control
+    applies is defined by the manufacturer.
+
+    2) Care should be taken to avoid the situation where the white
+    backlight level ratio approaches 0 … this may be non-recoverable
+    since user will not be able to see the image.
+  type: c
+  access: rw
+- code: 0x6c
+  version: ">=2.0"
+  group: image
+  name: Video Black Level: Red
+  interpretation: generic
+  desc: >-
+    Increasing (decreasing) this value will increase (decrease) the black
+    level of the red video.
+  type: c
+  access: rw
+- code: 0x6d
+  version: ">=2.2 && <3.0"
+  group: image
+  name: Backlight Level: Red
+  interpretation: generic
+  desc: >-
+    Increasing (decreasing) this value will increase (decrease) the Red
+    backlight level of the image.
+  desc_long: >-
+    NOTE:
+
+    1) The actual range of red backlight level over which this control
+    applies is defined by the manufacturer.
+
+    2) Care should be taken to avoid the situation where the red
+    backlight level ratio approaches 0 … this may be non-recoverable
+    since user will not be able to see the image.
+  type: c
+  access: rw
+- code: 0x6e
+  version: ">=2.0"
+  group: image
+  name: Video Black Level: Green
+  interpretation: generic
+  desc: >-
+    Increasing (decreasing) this value will increase (decrease) the black
+    level of the green video.
+  type: c
+  access: rw
+- code: 0x6f
+  version: ">=2.2 && <3.0"
+  group: image
+  name: Backlight Level: Green
+  interpretation: generic
+  desc: >-
+    Increasing (decreasing) this value will increase (decrease) the Green
+    backlight level of the image.
+  desc_long: >-
+    NOTE:
+
+    1) The actual range of green backlight level over which this control
+    applies is defined by the manufacturer.
+
+    2) Care should be taken to avoid the situation where the green
+    backlight level ratio approaches 0 … this may be non-recoverable
+    since user will not be able to see the image.
+  type: c
+  access: rw
+- code: 0x70
+  version: ">=2.0"
+  group: image
+  name: Video Black Level: Blue
+  interpretation: generic
+  desc: >-
+    Increasing (decreasing) this value will increase (decrease) the black
+    level of the blue video.
+  type: c
+  access: rw
+- code: 0x71
+  version: ">=2.2 && <3.0"
+  group: image
+  name: Backlight Level: Blue
+  interpretation: generic
+  desc: >-
+    Increasing (decreasing) this value will increase (decrease) the Blue
+    backlight level of the image.
+  desc_long: >-
+    NOTE:
+
+    1) The actual range of blue backlight level over which this control
+    applies is defined by the manufacturer.
+
+    2) Care should be taken to avoid the situation where the blue
+    backlight level ratio approaches 0 … this may be non-recoverable
+    since user will not be able to see the image.
+  type: c
+  access: rw
+- code: 0x72
+  version: ">=2.1"
+  group: image
+  name: Gamma
+  interpretation: generic
+  type: nc
+  access: rw
+  # TODO: this description is ugh
+- code: 0x73
+  version: ">=2.0"
+  group: image
+  name: LUT Size
+  interpretation: generic
+  desc: >-
+    Provides the size (number of entries and number of bits / entry) for
+    the Red / Green and Blue LUT in the display.
+  # TODO: this description ugh
+  type: t
+  access: r
+- code: 0x74
+  version: ">=2.0"
+  group: image
+  name: Single Point LUT Operation
+  interpretation: generic
+  desc: >-
+    Allows a single point within a display’s color LUT (look up table)
+    to be loaded.
+  # TODO: this description ugh
+  type: t
+  access: rw
+- code: 0x75
+  version: ">=2.0"
+  group: image
+  name: Block LUT Operation
+  interpretation: generic
+  desc: >-
+    Provides an efficient method for loading multiple values into a
+    display’s LUT.
+  # TODO: this description ugh
+  type: t
+  access: rw
+- code: 0x7c
+  version: ">=2.0"
+  group: image
+  name: Adjust Zoom
+  interpretation: generic
+  desc: >-
+    Increasing (decreasing) this value will increase (decrease) the zoom
+    function of the projection lens.
+  type: c
+  access: rw
+- code: 0x87
+  version: ">=2.0"
+  group: image
+  name: Sharpness
+  interpretation: generic
+  desc: >-
+    Allows one of a range of algorithms to be selected to suit the type of
+    image being displayed and/or personal prefer
+  type: c
+  access: rw
+- code: 0x88
+  version: ">=2.0"
+  group: image
+  name: Velocity Scan Modulation
+  interpretation: generic
+  desc: >-
+    Increasing (decreasing) this value will increase (decrease) the
+    velocity modulation of the horizontal scan as a function of a change
+    in the luminance level.
+  type: c
+  access: rw
+- code: 0x8a
+  version: ">=2.0"
+  group: image
+  name: Color Saturation
+  interpretation: generic
+  desc: >-
+    ncreasing this control increases the amplitude of the color
+    difference components of the video signal.
+  desc_long: >-
+    The result is an increase in the amount of pure color relative to
+    white in the video. This control applies to the currently active
+    interface.
+  type: c
+  access: rw
+- code: 0x8c
+  version: ">=2.0"
+  group: image
+  name: TV-Sharpness
+  interpretation: generic
+  desc: >-
+    Increasing this control increases the amplitude of the high frequency
+    components of the video signal.
+  desc_long: >-
+    This allows fine details to be accentuated. This control does not
+    affect the RGB input, only the TV video inputs.
+  type: c
+  access: rw
+- code: 0x8e
+  version: ">=2.0"
+  group: image
+  name: TV-Contrast
+  interpretation: generic
+  desc: >-
+    Increasing (decreasing) this control increases (decreases) the ratio
+    between whites and blacks in the video.
+  desc_long: >-
+    This control does not affect the RGB input, only the TV video
+    inputs.
+  type: c
+  access: rw
+- code: 0x90
+  version: ">=2.0"
+  group: image
+  name: Hue
+  interpretation: generic
+  desc: >-
+    Also known as ‘tint’
+
+    Increasing (decreasing) this control increases (decreases) the
+    wavelength of the color component of the video signal.
+  desc_long: >-
+    The result is a shift towards red (blue) in the hue of all colors. This
+    control applies to the currently active interface.
+  type: c
+  access: rw
+- code: 0x92
+  version: ">=2.0"
+  group: image
+  name: TV-Black Level / Luminance
+  interpretation: generic
+  desc: >-
+    Increasing this control increases the black level of the video,
+    resulting in an increase of the luminance level of the video.
+  desc_long: >-
+    A value of zero represents the darkest level possible.
+
+    This control does not affect the RGB input, only the TV video
+    inputs.
+  type: c
+  access: rw
+- code: 0x9b
+  version: ">=2.0"
+  group: image
+  name: 6 Axis Hue Control: Red
+  interpretation: generic
+  desc: >-
+    Adjust the red hue for 6-axis color.
+  # TODO: this long description and 0x7f shit
+  type: c
+  access: rw
+- code: 0x9c
+  version: ">=2.0"
+  group: image
+  name: 6 Axis Hue Control: Yellow
+  interpretation: generic
+  desc: >-
+    Adjust the yellow hue for 6-axis color.
+  # TODO: this long description and 0x7f shit
+  type: c
+  access: rw
+- code: 0x9d
+  version: ">=2.0"
+  group: image
+  name: 6 Axis Hue Control: Green
+  interpretation: generic
+  desc: >-
+    Adjust the green hue for 6-axis color.
+  # TODO: this long description and 0x7f shit
+  type: c
+  access: rw
+- code: 0x9e
+  version: ">=2.0"
+  group: image
+  name: 6 Axis Hue Control: Cyan
+  interpretation: generic
+  desc: >-
+    Adjust the cyan hue for 6-axis color.
+  # TODO: this long description and 0x7f shit
+  type: c
+  access: rw
+- code: 0x9f
+  version: ">=2.0"
+  group: image
+  name: 6 Axis Hue Control: Blue
+  interpretation: generic
+  desc: >-
+    Adjust the blue hue for 6-axis color.
+  # TODO: this long description and 0x7f shit
+  type: c
+  access: rw
+- code: 0xa0
+  version: ">=2.0"
+  group: image
+  name: 6 Axis Hue Control: Magenta
+  interpretation: generic
+  desc: >-
+    Adjust the magenta hue for 6-axis color.
+  # TODO: this long description and 0x7f shit
+  type: c
+  access: rw
+- code: 0xa2
+  version: ">=2.0"
+  group: image
+  name: Auto Setup On / Off
+  desc: >-
+    Turn on / off the auto setup function (periodic or event driven).
+  interpretation:
+  - value: 0x00
+    name: Reserved
+    desc: must be ignored
+  - value: 0x01
+    name: Off
+    desc: Turn auto setup "off"
+  - value: 0x02
+    name: On
+    desc: Turn auto setup "on"
+  - value: ">=0x03"
+    name: Reserved
+    desc: must be ignored
+  type: nc
+  access: w
+- code: 0xa4
+  version: ">=2.0"
+  group: image
+  name: Window Mask Control
+  interpretation: generic
+  # ugh wtf this description
+  type: nc
+  access: rw
+- code: 0xa4
+  version: ">=2.2"
+  type: t
+- code: 0xa5
+  version: ">=2.0"
+  group: image
+  name: Window Select
+  interpretation:
+  - value: 0x00
+    name: Full
+    desc: Full display image area is selected except for area(s) of active windows
+  - value: 0x01
+    name: Window 1
+    desc: Window 1 is selected
+  - value: 0x02
+    name: Window 2
+    desc: Window 2 is selected
+  - value: 0x03
+    name: Window 3
+    desc: Window 3 is selected
+  - value: 0x04
+    name: Window 4
+    desc: Window 4 is selected
+  - value: 0x05
+    name: Window 5
+    desc: Window 5 is selected
+  - value: 0x06
+    name: Window 6
+    desc: Window 6 is selected
+  - value: 0x07
+    name: Window 7
+    desc: Window 7 is selected
+  - value: ">=0x08"
+    name: Reserved
+    desc: must be ignored
+  desc: >-
+    Change the selected window.
+  desc_long: >-
+    When a window is selected then all commands that the display
+    controller supports for window operations are valid, this may
+    include but is not limited to: luminance, contrast, R/G/B gain, 6-
+    axis color, sharpness, etc.
+
+    NOTE: If this command is not supported then the ‘full image area’
+    must be the default.
+
+    This command structure is recommended, in conjunction with VCP
+    0xA4, for all new designs.
+
+    The last window to be addressed is assumed to the top ‘layer’ of the
+    displayed image.
+  type: nc # spec says c?
+  access: rw
+- code: 0xa6
+  version: ">=2.2 && <3.0" # um no record of this in ddcutil?
+  group: image
+  name: Window Size
+  interpretation: generic
+  desc: >-
+    Increasing (decreasing) this value will increase (decrease) the size
+    of the window called out by
+    VCP 0xA5 .
+  # TODO: ugh this desc
+  type: c
+  access: rw
+- code: 0xa7
+  version: ">=2.2 && <3.0" # um no record of this in ddcutil?
+  group: image
+  name: Window Transparency
+  interpretation: generic
+  desc: >-
+    Increasing (decreasing) this value will increase (decrease) the
+    transparency of the window called out by 0xA5.
+  # TODO: ugh this desc
+  type: c
+  access: rw
+- code: 0xaa
+  version: ">=2.0"
+  group: image
+  name: Screen Orientation
+  interpretation:
+  - value: 0x00
+    name: Reserved
+    desc: Shall be ignored
+  - value: 0x01
+    name: 0 degrees
+    desc: The normal landscape mode
+  - value: 0x02
+    name: 90 degrees
+    desc: Portrait mode achieved by clockwise rotatio of the display 90 degrees.
+  - value: 0x03
+    name: 180 degrees
+    desc: Landscape mode achieved by rotation of the display 180 degrees.
+  - value: 0x04
+    name: 270 degrees
+    desc: Portrait mode achieved by clockwise rotation of the display 270 degrees.
+  - value: ">=0x05 && <=0xfe"
+    name: Reserved
+    desc: Shall be ignored
+  - value: 0xff
+    name: Not applicable
+    desc: Indicates that the display cannot supply the current orientation
+  desc: >-
+    Indicates the orientation of the screen.
+  desc_long: >-
+    NOTE: “Clockwise rotation” when viewing the display from user’s
+    viewpoint.
+  type: nc
+  access: r
+- code: 0xd4
+  version: ">=2.0"
+  group: image
+  name: Stereo Video Mode
+  interpretation: stereovideomode
+  desc: >-
+    Used to select the video mode with respect to 2D or 3D video.
+  desc_long: >-
+    NOTE: It is permissible, during a read operation, for a display to
+    indicate support for 2 or more stereo modes.
+  type: nc
+  access: rw
+- code: 0xdc
+  version: ">=2.0"
+  group: image
+  name: Display Application
+  interpretation:
+  - value: 0x00
+    name: Stand
+    desc: default mode
+  - value: 0x01
+    name: Productivity
+    desc: e.g. office applications
+  - value: 0x02
+    name: Mixed
+    desc: e.g. internet with mix of text and images
+  - value: 0x03
+    name: Movie
+  - value: 0x04
+    name: User defined
+  - value: 0x05
+    name: Games
+    desc: e.g. games console / PC game
+  - value: 0x06
+    name: Sports
+    desc: e.g. fast action
+  - value: 0x07
+    name: Professional
+    desc: all signal processing disabled
+  - value: 0x08
+    name: Standard Medium
+    desc: default mode with intermediate power consumption
+  - value: 0x09
+    name: Standard Low
+    desc: default mode with low power consumption
+  - value: 0x0a
+    name: Demonstration
+    desc: used for high visual impact in retail etc.
+  - value: ">=0x0b && <=0xef"
+    name: Reserved
+    desc: must  be ignored
+  - value: 0xf0
+    name: Dynamic contrast
+  - value: ">=0xf1"
+    name: Reserved
+    desc: must be ignored
+  desc: >-
+    Permits the selection of a preset optimized by manufacturer for an
+    application type or the selection of a user defined setting.
+  desc_long: >-
+    NOTE: The condition(s) associated with options 0x00 → 0x0A
+    (inclusive) are defined by the display manufacturer and may include
+    all or some of luminance, contrast, gamma settings, etc.
+  type: nc
+  access: rw
+- code: 0xb4
+  version: "=2.1"
+  name: Source Timing Mode
+  type: nc
+  access: rw
+  interpretation: generic
+- code: 0xb4
+  version: ">=2.2"
+  group: display
+  name: Source Timing Mode
+  desc: Indicates the timing mode being sent by the host.
+  type: t
+  interpretation: timingmode
+  access: rw
+  # TODO: this desc_long and interpretation
+- code: 0xca
+  version: ">=2.0"
+  group: display
+  name: OSD / Button Control
+  desc: Sets and indicates the current operational state of the display OSD and buttons.
+  type: nc
+  interpretation: osdbutoncontrol
+  access: rw
+  # TODO: this desc_long and interpretation
+- code: 0xac
+  version: ">=2.0"
+  group: display
+  name: Horizontal Frequency
+  desc: Horizontal synchronization signal frequency in Hz as determined by the display.
+  type: c
+  interpretation: displayfrequency
+  access: ro
+- code: 0xae
+  version: ">=2.0"
+  group: display
+  name: Vertical Frequency
+  desc: Vertical synchronization signal frequency in 0.01Hz as determined by the display.
+  type: c
+  interpretation: displayfrequency01
+  access: ro
+- code: 0xb5
+  version: ">=2.2 && < 3.0" # not specified in ddcutil?
+  group: display
+  name: Source Color Coding
+  desc: Allows the host to specify the color coding method that is being used.
+  interpretation:
+  - value: 0x00
+    name: RGB 4:4:4
+  - value: 0x01
+    name: YCbCr / YPbPr 4:4:4
+  - value: 0x02
+    name: YCbCr / YPbPr 4:2:2
+  type: nc
+  access: w
+- code: 0xc0
+  version: ">=2.0"
+  group: display
+  name: Display Usage Time
+  desc: Returns the current value (in hours) of ‘active power on’ time accumulated by the display.
+  desc_long: >-
+    ‘Active power on’ time is defined as the period when
+    the emissive elements(s) of the display – cathodes for a CRT, fluorescent
+    lamps for a LCD, etc. – are active.
+  interpretation: displayusagetime
+  type: c
+  access: r
+- code: 0xc8
+  version: ">=2.0"
+  group: display
+  name: Display Controller ID
+  desc: Controller manufacturer and unique chip ID used in a particular display.
+  type: nc
+  interpretation: displaycontrollerid
+  access: r
+  mandatory: true
+- code: 0xc9
+  version: ">=2.0"
+  group: display
+  name: Display Firmware Level
+  desc: Firmware version and revision number
+  type: c
+  interpretation: displayfirmwarelevel
+  access: r
+- code: 0xcc
+  version: ">=2.0"
+  group: display
+  name: OSD Language
+  desc: Allows the host to select the display OSD language.
+  type: nc
+  interpretation:
+  - value: 0x00
+    name: Reserved
+    desc: must be ignored
+  - value: 0x01
+    name: Chinese (traditional / Hantai)
+  - value: 0x02
+    name: English
+  - value: 0x03
+    name: French
+  - value: 0x04
+    name: German
+  - value: 0x05
+    name: Italian
+  - value: 0x06
+    name: Japanese
+  - value: 0x07
+    name: Korean
+  - value: 0x08
+    name: Portuguese (Portugal)
+  - value: 0x09
+    name: Russian
+  - value: 0x0a
+    name: Spanish
+  - value: 0x0b
+    name: Swedish
+  - value: 0x0c
+    name: Turkish
+  - value: 0x0d
+    name: Chinese (simplified / Kantai)
+  - value: 0x0e
+    name: Portuguese (Brazil)
+  - value: 0x0f
+    name: Arabic
+  - value: 0x10
+    name: Bulgarian
+  - value: 0x11
+    name: Croatian
+  - value: 0x12
+    name: Czech
+  - value: 0x13
+    name: Danish
+  - value: 0x14
+    name: Dutch
+  - value: 0x15
+    name: Estonian
+  - value: 0x16
+    name: Finnish
+  - value: 0x17
+    name: Greek
+  - value: 0x18
+    name: Hebrew
+  - value: 0x19
+    name: Hindi
+  - value: 0x1a
+    name: Hungarian
+  - value: 0x1b
+    name: Latvian
+  - value: 0x1c
+    name: Lithuanian
+  - value: 0x1d
+    name: Norwegian
+  - value: 0x1e
+    name: Polish
+  - value: 0x1f
+    name: Romanian
+  - value: 0x20
+    name: Serbian
+  - value: 0x21
+    name: Slovak
+  - value: 0x22
+    name: Slovenian
+  - value: 0x23
+    name: Thai
+  - value: 0x24
+    name: Ukrainian
+  - value: 0x25
+    name: Vietnamese
+  - value: ">=0x26"
+    name: Reserved
+    desc: must be ignored
+  access: rw
+  # TODO: MCCS 2.1 0x10 should instead be equivalent to 0x0a
+- code: 0xd6
+  version: ">=2.0"
+  group: display
+  name: Power Mode
+  desc: Power Mode – DPM & DPMS standards are supported along with other power function(s).
+  type: nc
+  interpretation:
+  - value: 0x00
+    name: Reserved
+    desc: must be ignored
+  - value: 0x01
+    name: On
+  - value: 0x02
+    name: Standby
+  - value: 0x03
+    name: Suspend
+  - value: 0x04
+    name: Off
+  - value: 0x05
+    name: Power off the display
+    desc: functionally equivalent to turning off power using the “power button”
+  access: rw
+- code: 0xdb
+  version: ">=2.0"
+  group: display
+  name: Image Mode
+  desc: Controls aspects of the displayed image.
+  type: nc
+  interpretation:
+  - value: 0x00
+    name: No effect
+  - value: 0x01
+    name: Full mode
+    desc: Linear expansion (compression) of the image on horizontal axis.
+  - value: 0x02
+    name: Zoom mode
+    desc: Linear expansion (compression) of the image on horizontal and vertical axes.
+  - value: 0x03
+    name: Squeeze mode
+    desc: Display all of image content on visible screen. May result in unused areas of visible screen … bars at top, bottom, or sides.
+  - value: 0x04
+    name: Variable
+    desc: Display all of image content by applying non-linear expansion (compression) to the horizontal axis.
+  - value: ">=0x05"
+    name: Reserved
+    desc: must be ignored
+  desc_long: >-
+    NOTE: This VCP code is intended for use with TV applications.
+    A more complete description of these modes may be found in the VESA
+    DI-EXT standard.
+  access: rw
 - code: 0xdf
   version: ">=2.0"
   group: display
@@ -132,6 +1486,374 @@ vcp_features:
     SL byte: defines the MCCS revision number
 
     e.g. 0x02 0x02 defines a MCCS level of 2.2
+- code: 0x20
+  version: ">=2.0"
+  group: geometry
+  name: Horizontal Position (Phase)
+  desc: Increasing (decreasing) this value moves the image toward the right (left) side of the display.
+  type: c
+  interpretation: generic
+  access: rw
+- code: 0x22
+  version: ">=2.0"
+  group: geometry
+  name: Horizontal Size
+  desc: Increasing (decreasing) this value will increase (decrease) the width of the image.
+  type: c
+  interpretation: generic
+  access: rw
+- code: 0x24
+  version: ">=2.0"
+  group: geometry
+  name: Horizontal Pincushion
+  desc: Increasing (decreasing) this value will cause the right and left sides of the image to become more (less) convex.
+  type: c
+  interpretation: generic
+  access: rw
+- code: 0x26
+  version: ">=2.0"
+  group: geometry
+  name: Horizontal Pincushion Balance
+  desc: Increasing (decreasing) this value will move the center section of the image toward the right (left) side of the display.
+  type: c
+  interpretation: generic
+  access: rw
+- code: 0x28
+  version: ">=2.0"
+  group: geometry
+  name: Horizontal Convergence
+  desc: Increasing (decreasing) this value will shift the red pixels to the right (left) across the image and the blue pixels left (right) across the image with respect to the green pixels.
+  type: c
+  interpretation: generic
+  access: rw
+- code: 0x28
+  version: ">=2.1"
+  name: Horizontal Convergence R/B
+- code: 0x29
+  version: ">=2.1"
+  group: geometry
+  name: Horizontal Convergence M/G
+  desc: Increasing (decreasing) this value will shift the magenta pixels to the right (left) across the image and the green pixels left (right) across the image with respect to the magenta pixels.
+  type: c
+  interpretation: generic
+  access: rw
+- code: 0x2a
+  version: ">=2.0"
+  group: geometry
+  name: Horizontal Linearity
+  desc: Increasing (decreasing) this value will increase (decrease) the density of pixels in the image center.
+  type: c
+  interpretation: generic
+  access: rw
+- code: 0x2c
+  version: ">=2.0"
+  group: geometry
+  name: Horizontal Linearity Balance
+  desc: Increasing (decreasing) this value shifts the density of pixels from the left (right) side to the right (left) side of the image.
+  type: c
+  interpretation: generic
+  access: rw
+- code: 0x30
+  version: ">=2.0"
+  group: geometry
+  name: Vertical Position {Phase}
+  desc: Increasing (decreasing) this value moves the image toward the top (bottom) edge of the display.
+  type: c
+  interpretation: generic
+  access: rw
+- code: 0x32
+  version: ">=2.0"
+  group: geometry
+  name: Vertical Size
+  desc: Increasing (decreasing) this value will increase (decrease) the height of the image
+  type: c
+  interpretation: generic
+  access: rw
+- code: 0x34
+  version: ">=2.0"
+  group: geometry
+  name: Vertical Pincushion
+  desc: Increasing (decreasing) this value will cause the top and bottom edges of the image to become more (less) convex.
+  type: c
+  interpretation: generic
+  access: rw
+- code: 0x36
+  version: ">=2.0"
+  group: geometry
+  name: Vertical Pincushion Balance
+  desc: Increasing (decreasing) this value will move the center section of the image toward the top (bottom) edge of the display.
+  type: c
+  interpretation: generic
+  access: rw
+- code: 0x38
+  version: ">=2.0"
+  group: geometry
+  name: Vertical Convergence
+  desc: Increasing (decreasing) this value shifts the red pixels up (down) across the image and the blue pixels down (up) across the image with respect to the green pixels.
+  type: c
+  interpretation: generic
+  access: rw
+- code: 0x38
+  version: ">=2.1"
+  name: Vertical Convergence R/B
+- code: 0x39
+  version: ">=2.1"
+  group: geometry
+  name: Vertical Convergence M/G
+  desc: Increasing (decreasing) this value will shift the magenta pixels up (down) across the image and the green pixels down (up) across the image with respect to the magenta pixels.
+  type: c
+  interpretation: generic
+  access: rw
+- code: 0x3a
+  version: ">=2.0"
+  group: geometry
+  name: Vertical Linearity
+  desc: Increasing (decreasing) this value will increase (decrease) the density of scan lines in the image center.
+  type: c
+  interpretation: generic
+  access: rw
+- code: 0x3c
+  version: ">=2.0"
+  group: geometry
+  name: Vertical Linearity Balance
+  desc: Increasing (decreasing) this value shifts the density of scan lines from the top (bottom) end to the bottom (top) end of the image.
+  type: c
+  interpretation: generic
+  access: rw
+- code: 0x40
+  version: ">=2.0"
+  group: geometry
+  name: Key Balance
+  desc: Increasing (decreasing) this value shifts the top section of the image to the right (left) with respect to the bottom section of the image.
+  type: c
+  interpretation: generic
+  access: rw
+- code: 0x40
+  version: ">=2.1"
+  name: Horizontal Parallelogram
+- code: 0x41
+  version: ">=2.1"
+  group: geometry
+  name: Vertical Parallelogram
+  desc: Increasing (decreasing) this value shifts the top section of the image to the right (left) with respect to the bottom section of the image.
+  type: c
+  interpretation: generic
+  access: rw
+- code: 0x42
+  version: ">=2.0"
+  group: geometry
+  name: Horizontal Trapezoid
+  desc: Increasing (decreasing) this value will increase (decrease) the horizontal size at the top of the image with respect to the horizontal size at the bottom of the image.
+  type: c
+  interpretation: generic
+  access: rw
+- code: 0x42
+  version: ">=2.1"
+  name: Horizontal Keystone
+- code: 0x43
+  version: ">=2.0"
+  group: geometry
+  name: Vertical Trapezoid
+  desc: Increasing (decreasing) this value will increase (decrease) the vertical size at the left of the image with respect to the vertical size at the right of the image.
+  type: c
+  interpretation: generic
+  access: rw
+- code: 0x43
+  version: ">=2.1"
+  name: Vertical Keystone
+- code: 0x44
+  version: ">=2.0"
+  group: geometry
+  name: Tilt (rotation)
+  desc: Increasing (decreasing) this value rotates the image (counter) clockwise about the center point of the screen.
+  type: c
+  interpretation: generic
+  access: rw
+- code: 0x44
+  version: ">=2.1"
+  name: Rotation
+- code: 0x46
+  version: ">=2.0"
+  group: geometry
+  name: Top Corner
+  desc: Increasing (decreasing) this value will increase (decrease) the distance between the left and right sides at the top of the image.
+  type: c
+  interpretation: generic
+  access: rw
+- code: 0x46
+  version: ">=2.1"
+  name: Top Corner Flare
+- code: 0x48
+  version: ">=2.0"
+  group: geometry
+  name: Top Corner Balance
+  desc: Increasing (decreasing) this value moves the top of the image to the right (left).
+  type: c
+  interpretation: generic
+  access: rw
+- code: 0x48
+  version: ">=2.0"
+  name: Top Corner Hook
+- code: 0x4a
+  version: ">=2.0"
+  group: geometry
+  name: Bottom Corner
+  desc: Increasing (decreasing) this value will increase (decrease) the distance between the left and right sides at the bottom of the image.
+  type: c
+  interpretation: generic
+  access: rw
+- code: 0x4a
+  version: ">=2.1"
+  name: Bottom Corner Flare
+- code: 0x4c
+  version: ">=2.0"
+  group: geometry
+  name: Bottom Corner Balance
+  desc: Increasing (decreasing) this value moves the bottom of the image to the right (left).
+  type: c
+  interpretation: generic
+  access: rw
+- code: 0x4c
+  version: ">=2.0"
+  name: Bottom Corner Hook
+- code: 0x82
+  version: ">=2.0"
+  group: geometry
+  name: Horizontal Mirror (Flip)
+  desc: This VCP code allows the image to be mirrored horizontally.
+  type: nc
+  interpretation:
+  - value: 0x00
+    name: Normal mode
+  - value: 0x01
+    name: Mirrored horizontally mode
+  access: ro
+- code: 0x82
+  version: ">=2.1"
+  access: rw
+- code: 0x84
+  version: ">=2.0"
+  group: geometry
+  name: Vertical Mirror (Flip)
+  desc: This VCP code allows the image to be mirrored vertically.
+  type: nc
+  interpretation:
+  - value: 0x00
+    name: Normal mode
+  - value: 0x01
+    name: Mirrored vertically mode
+  access: ro
+- code: 0x84
+  version: ">=2.1"
+  access: rw
+- code: 0x86
+  version: ">=2.0"
+  group: geometry
+  name: Display Scaling
+  desc: Changing this value will affect the scaling (input versus output) function of the display.
+  desc_long: >-
+    NOTE: This VCP code can be used to scale up or down to the
+    maximum screen size.
+
+    Controls values 0x02 → 0x06 are primarily intended for use with
+    computer displays and controls values 0x07 → 0x0A are primarily
+    intended for use with TV applications.
+
+    NOTE:
+    A more complete description of modes 07 h → 0A h may be found in
+    the VESA DI-EXT standard.
+  type: nc
+  interpretation:
+  - value: 0x00
+    name: Reserved
+    desc: must be ignored
+  - value: 0x01
+    name: No scaling
+    desc: No effect, 1:1 relationship
+  - value: 0x02
+    name: Max Image
+    desc: Scale to maximum image size with no aspect (AR) ratio distortion
+  - value: 0x03
+    name: Max Vt 1
+    desc: Scale to maximum vertical image size with no AR distortion
+  - value: 0x04
+    name: Max Hz 1
+    desc: Scale to maximum horizontal image size with no AR distortion
+  - value: 0x05
+    name: Max Vt 2
+    desc: Scale to maximum vertical image size with AR distortion
+  - value: 0x06
+    name: Max Hz 2
+    desc: Scale to maximum horizontal image size with AR distortion
+  - value: 0x07
+    name: Full mode
+    desc: Linear expansion (compression) of the image on horizontal axis.
+  - value: 0x08
+    name: Zoom mode
+    desc: Linear expansion (compression) of the image on horizontal and vertical axes.
+  - value: 0x09
+    name: Squeeze mode
+    desc: Display all of image content on visible screen. May result in unused areas of visible screen … bars at top, bottom, or sides.
+  - value: 0x0a
+    name: Variable
+    desc: Display all of image content by applying non-linear expansion (compression) to the horizontal axis.
+  - value: ">=0x0b"
+    name: Reserved
+    desc: must be ignored
+  access: ro
+- code: 0x95
+  version: ">=2.0"
+  group: geometry
+  name: Window Position (TL_X)
+  desc: Defines the top left X pixel of an area of the image. Specified in co-ordinates of incoming image before any scaling etc. in the display.
+  type: c
+  interpretation: pixels
+  access: rw
+- code: 0x96
+  version: ">=2.0"
+  group: geometry
+  name: Window Position (TL_y)
+  desc: Defines the top left Y pixel of an area of the image. Specified in co-ordinates of incoming image before any scaling etc. in the display.
+  type: c
+  interpretation: pixels
+  access: rw
+- code: 0x97
+  version: ">=2.0"
+  group: geometry
+  name: Window Position (BR_X)
+  desc: Defines the bottom right X pixel of an area of the image. Specified in co-ordinates of the incoming image before any scaling etc. in the display.
+  type: c
+  interpretation: pixels
+  access: rw
+- code: 0x98
+  version: ">=2.0"
+  group: geometry
+  name: Window Position (BR_Y)
+  desc: Defines the bottom right Y pixel of an area of the image. Specified in co-ordinates of the incoming image before any processing (e.g. scaling) in the display.
+  type: c
+  interpretation: pixels
+  access: rw
+- code: 0xda
+  version: ">=2.0"
+  group: geometry
+  name: Scan Format
+  desc: Controls the scan characteristics.
+  type: c
+  interpretation:
+  - value: 0x00
+    name: Normal operation
+    desc: no overscan or underscan
+  - value: 0x01
+    name: Underscan
+  - value: 0x02
+    name: Overscan
+  - value: ">=0x03"
+    name: Reserved
+    desc: must be ignored
+  access: rw
+- code: 0xda
+  version: ">=2.1"
+  name: Scan Mode
 - code: 0x60
   version: ">=2.0 && <3.0"
   group: misc
