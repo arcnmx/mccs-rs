@@ -1,6 +1,6 @@
 # mccs
 
-[![travis-badge][]][travis] [![release-badge][]][cargo] [![docs-badge][]][docs] [![license-badge][]][license]
+[![release-badge][]][cargo] [![docs-badge][]][docs] [![license-badge][]][license]
 
 `mccs` implements the VESA [Monitor Control Command Set](https://en.wikipedia.org/wiki/Monitor_Control_Command_Set).
 The library is split up into a few sub-crates:
@@ -14,8 +14,6 @@ The library is split up into a few sub-crates:
 
 See the [documentation][docs] for up to date information.
 
-[travis-badge]: https://img.shields.io/travis/arcnmx/mccs-rs/master.svg?style=flat-square
-[travis]: https://travis-ci.org/arcnmx/mccs-rs
 [release-badge]: https://img.shields.io/crates/v/mccs.svg?style=flat-square
 [cargo]: https://crates.io/crates/mccs
 [docs-badge]: https://img.shields.io/badge/API-docs-blue.svg?style=flat-square
