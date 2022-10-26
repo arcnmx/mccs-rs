@@ -12,7 +12,7 @@ use {
 };
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
-pub enum Req<V> {
+pub(crate) enum Req<V> {
     Bracket(Box<Req<V>>),
     And(Box<Req<V>>, Box<Req<V>>),
     Or(Box<Req<V>>, Box<Req<V>>),
@@ -38,7 +38,7 @@ impl<V: fmt::Display> fmt::Display for Req<V> {
     }
 }
 
-pub type VersionReq = Req<Version>;
+pub(crate) type VersionReq = Req<Version>;
 
 trait ReqValue: Sized + fmt::Debug + fmt::Display {
     type Err: fmt::Debug;
@@ -53,7 +53,8 @@ impl ReqValue for Version {
     const EXPECTED: &'static str = "version requirement";
 
     fn parse_req(req: &str) -> Result<Req<Self>, Self::Err> {
-        complete!(req.as_bytes(), parse_version_expr).to_result()
+        complete!(req.as_bytes(), parse_version_expr)
+            .to_result()
             .map_err(|e| e.into_error_kind())
     }
 }
@@ -64,7 +65,8 @@ impl ReqValue for u8 {
     const EXPECTED: &'static str = "version requirement";
 
     fn parse_req(req: &str) -> Result<Req<Self>, Self::Err> {
-        complete!(req.as_bytes(), parse_u8_expr).to_result()
+        complete!(req.as_bytes(), parse_u8_expr)
+            .to_result()
             .map_err(|e| e.into_error_kind())
     }
 }
@@ -127,8 +129,8 @@ named!(parse_version<&[u8], Version>,
         minor: map_res!(digit, |v| u8::from_str(str::from_utf8(v).unwrap())) >>
         take_while!(is_space) >>
         (Version {
-            major: major,
-            minor: minor,
+            major,
+            minor,
         })
     )
 );

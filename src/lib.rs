@@ -1,24 +1,16 @@
 #![deny(missing_docs)]
-#![doc(html_root_url = "https://docs.rs/mccs/0.1.3")]
+#![doc(html_root_url = "https://docs.rs/mccs/0.2.0")]
 
 //! VESA Monitor Command Control Set standardizes the meaning of DDC/CI VCP
 //! feature codes, and allows a display to broadcast its capabilities to the
 //! host.
 
-#[cfg(feature = "void")]
-extern crate void;
-
 use std::{
     collections::{btree_map, BTreeMap},
+    convert::Infallible,
     fmt::{self, Display, Formatter},
     str::FromStr,
 };
-#[cfg(feature = "void")]
-use void::Void;
-
-/// An error type that cannot be encountered.
-#[cfg(not(feature = "void"))]
-pub enum Void {}
 
 /// VCP feature code
 pub type FeatureCode = u8;
@@ -172,7 +164,7 @@ impl Display for Protocol {
 }
 
 impl FromStr for Protocol {
-    type Err = Void;
+    type Err = Infallible;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Ok(s.into())
@@ -218,7 +210,7 @@ impl Display for Type {
 }
 
 impl FromStr for Type {
-    type Err = Void;
+    type Err = Infallible;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Ok(s.into())
@@ -237,10 +229,7 @@ pub struct Version {
 impl Version {
     /// Create a new MCCS version from the specified version and revision.
     pub fn new(major: u8, minor: u8) -> Self {
-        Version {
-            major: major,
-            minor: minor,
-        }
+        Version { major, minor }
     }
 }
 
