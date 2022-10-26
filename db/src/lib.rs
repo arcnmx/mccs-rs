@@ -222,9 +222,18 @@ impl Database {
                     },
                     (DatabaseType::NonContinuous, Some(DatabaseInterpretation::Values(values))) => ValueType::NonContinuous {
                         values: values.into_iter()
-                            .filter_map(|v| match v.value {
-                                DatabaseValue::Value(value) => Some((value, Some(v.name))),
-                                DatabaseValue::Range(..) => None, // unimplemented
+                            .flat_map(|v| {
+                                let mut name = Some(v.name);
+                                let dbv = v.value;
+                                let (opti, range) = match dbv {
+                                    DatabaseValue::Value(value) => (Some((value, name.take())), None),
+                                    DatabaseValue::Range(version_req::Req::Eq(value)) => (Some((value, name.take())), None),
+                                    DatabaseValue::Range(range) => (None, Some(range)),
+                                };
+                                opti.into_iter().chain(range.map(move |range| (0..=0xff)
+                                    .filter(move |value| range.matches(value))
+                                    .map(move |value| (value, name.clone()))
+                                ).into_iter().flat_map(|i| i))
                             }).collect(),
                         interpretation: ValueInterpretation::NonContinuous,
                     },
