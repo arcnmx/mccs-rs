@@ -366,7 +366,7 @@ enum DatabaseReadWrite {
 #[serde(untagged)]
 enum DatabaseValue {
     Value(u8),
-    Range(String),
+    Range(version_req::Req<FeatureCode>),
 }
 
 #[derive(Debug, Serialize, Deserialize)]
