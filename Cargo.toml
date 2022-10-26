@@ -11,6 +11,9 @@ repository = "https://github.com/arcnmx/mccs-rs"
 readme = "README.md"
 license = "MIT"
 
+[workspace]
+members = ["caps", "db"]
+
 [badges]
 travis-ci = { repository = "arcnmx/mccs-rs" }
 maintenance = { status = "passively-maintained" }
