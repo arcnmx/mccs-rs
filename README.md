@@ -17,6 +17,6 @@ See the [documentation][docs] for up to date information.
 [release-badge]: https://img.shields.io/crates/v/mccs.svg?style=flat-square
 [cargo]: https://crates.io/crates/mccs
 [docs-badge]: https://img.shields.io/badge/API-docs-blue.svg?style=flat-square
-[docs]: http://arcnmx.github.io/mccs-rs/mccs/
+[docs]: http://docs.rs/mccs/
 [license-badge]: https://img.shields.io/badge/license-MIT-ff69b4.svg?style=flat-square
 [license]: https://github.com/arcnmx/mccs-rs/blob/master/COPYING

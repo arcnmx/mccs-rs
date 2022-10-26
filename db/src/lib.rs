@@ -1,5 +1,5 @@
 #![deny(missing_docs)]
-#![doc(html_root_url = "http://arcnmx.github.io/mccs-rs/")]
+#![doc(html_root_url = "https://docs.rs/mccs-db/0.1.2")]
 
 //! Monitor Command Control Set VCP feature code meanings and data
 //! interpretation.

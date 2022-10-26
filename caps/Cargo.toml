@@ -1,12 +1,12 @@
 [package]
 name = "mccs-caps"
-version = "0.1.0"
+version = "0.1.0" # keep in sync with README and html_root_url
 authors = ["arcnmx"]
 
 description = "MCCS capability string parser"
 keywords = ["ddc", "mccs", "vcp", "vesa"]
 
-documentation = "http://arcnmx.github.io/mccs-rs/mccs_caps"
+documentation = "https://docs.rs/mccs-caps"
 repository = "https://github.com/arcnmx/mccs-rs"
 readme = "../README.md"
 license = "MIT"
