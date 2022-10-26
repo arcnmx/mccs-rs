@@ -1,5 +1,5 @@
 #![deny(missing_docs)]
-#![doc(html_root_url = "https://docs.rs/mccs-db/0.1.2")]
+#![doc(html_root_url = "https://docs.rs/mccs-db/0.2.0")]
 
 //! Monitor Command Control Set VCP feature code meanings and data
 //! interpretation.
@@ -7,8 +7,7 @@
 //! # Example
 //!
 //! ```
-//! extern crate mccs_db;
-//! extern crate mccs_caps;
+//! use mccs_db::Database;
 //!
 //! # fn read_display_capability_string() -> &'static str {
 //! # "(prot(monitor)type(lcd)27UD58cmds(01 02 03 0C E3 F3)vcp(02 04 05 08 10 12 14(05 08 0B ) 16 18 1A 52 60( 11 12 0F 10) AC AE B2 B6 C0 C6 C8 C9 D6(01 04) DF 62 8D F4 F5(01 02) F6(00 01 02) 4D 4E 4F 15(01 06 11 13 14 28 29 32 48) F7(00 01 02 03) F8(00 01) F9 E4 E5 E6 E7 E8 E9 EA EB EF FD(00 01) FE(00 01 02) FF)mccs_ver(2.1)mswhql(1))"
@@ -18,7 +17,7 @@
 //! let caps = mccs_caps::parse_capabilities(read_display_capability_string()).unwrap();
 //!
 //! // Load the MCCS version spec and filter by the monitor's capabilities
-//! let mut db = mccs_db::Database::from_version(caps.mccs_version.as_ref().unwrap());
+//! let mut db = Database::from_version(caps.mccs_version.as_ref().unwrap());
 //! db.apply_capabilities(&caps);
 //!
 //! println!("Display Capabilities: {:#?}", db);
@@ -27,16 +26,10 @@
 
 #[macro_use]
 extern crate nom;
-extern crate mccs;
-extern crate serde;
-#[macro_use]
-extern crate serde_derive;
-extern crate serde_yaml;
-#[cfg(test)]
-extern crate mccs_caps;
 
 use std::collections::BTreeMap;
 use std::{io, mem};
+use serde::{Serialize, Deserialize};
 use mccs::{Capabilities, FeatureCode, ValueNames, Version, Value};
 
 #[cfg(test)]
@@ -44,6 +37,7 @@ use mccs::{Capabilities, FeatureCode, ValueNames, Version, Value};
 mod testdata;
 
 mod version_req;
+
 /// Describes how to interpret a table's raw value.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum TableInterpretation {

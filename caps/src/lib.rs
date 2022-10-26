@@ -1,5 +1,5 @@
 #![deny(missing_docs)]
-#![doc(html_root_url = "https://docs.rs/mccs-caps/0.1.0")]
+#![doc(html_root_url = "https://docs.rs/mccs-caps/0.2.0")]
 
 //! MCCS compliant displays will report their supported capabilities in a string
 //! retrieved over DDC/CI. The format of this string is specified in the DDC
@@ -8,7 +8,6 @@
 
 #[macro_use]
 extern crate nom;
-extern crate mccs;
 
 use std::str::{self, FromStr};
 use std::borrow::Cow;

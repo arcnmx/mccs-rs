@@ -6,7 +6,7 @@ use serde::ser::{Serialize, Serializer};
 use mccs::Version;
 
 #[derive(Clone, Debug)]
-pub enum Req<V> {
+pub(crate) enum Req<V> {
     Bracket(Box<Req<V>>),
     And(Box<Req<V>>, Box<Req<V>>),
     Or(Box<Req<V>>, Box<Req<V>>),
@@ -17,7 +17,7 @@ pub enum Req<V> {
     Lt(V),
 }
 
-pub type VersionReq = Req<Version>;
+pub(crate) type VersionReq = Req<Version>;
 
 trait ReqValue: Sized {
     type Err: std::fmt::Display;
@@ -95,15 +95,15 @@ fn parse_brackets<F: FnOnce(&[u8]) -> nom::IResult<&[u8], T>, T>(input: &[u8], f
 }
 
 named!(parse_version<&[u8], Version>,
-   do_parse!(
-       take_while!(is_space) >>
-       major: map_res!(digit, |v| u8::from_str(str::from_utf8(v).unwrap())) >>
-       tag!(".") >>
-       minor: map_res!(digit, |v| u8::from_str(str::from_utf8(v).unwrap())) >>
-       take_while!(is_space) >>
-       (Version {
-           major: major,
-           minor: minor,
+    do_parse!(
+        take_while!(is_space) >>
+        major: map_res!(digit, |v| u8::from_str(str::from_utf8(v).unwrap())) >>
+        tag!(".") >>
+        minor: map_res!(digit, |v| u8::from_str(str::from_utf8(v).unwrap())) >>
+        take_while!(is_space) >>
+        (Version {
+            major,
+            minor,
         })
     )
 );
