@@ -1,6 +1,6 @@
 use nom::{digit, is_hex_digit, is_space};
 use std::str::{self, FromStr};
-use std::cmp;
+use std::{cmp, fmt};
 use serde::de::{Deserialize, Deserializer, Error, Unexpected};
 use serde::ser::{Serialize, Serializer};
 use mccs::Version;
@@ -17,10 +17,25 @@ pub enum Req<V> {
     Lt(V),
 }
 
+impl<V: fmt::Display> fmt::Display for Req<V> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Req::Bracket(r) => write!(f, "({r})"),
+            Req::And(lhs, rhs) => write!(f, "{lhs} && {rhs}"),
+            Req::Or(lhs, rhs) => write!(f, "{lhs} || {rhs}"),
+            Req::Eq(v) => write!(f, "={v}"),
+            Req::Gt(v) => write!(f, ">{v}"),
+            Req::Ge(v) => write!(f, ">={v}"),
+            Req::Lt(v) => write!(f, "<{v}"),
+            Req::Le(v) => write!(f, "<={v}"),
+        }
+    }
+}
+
 pub type VersionReq = Req<Version>;
 
-trait ReqValue: Sized {
-    type Err: std::fmt::Display;
+trait ReqValue: Sized + fmt::Debug + fmt::Display {
+    type Err: fmt::Debug;
     const EXPECTED: &'static str;
 
     fn parse_req(req: &str) -> Result<Req<Self>, Self::Err>;
@@ -48,23 +63,25 @@ impl<'a, V: ReqValue> Deserialize<'a> for Req<V> {
     fn deserialize<D: Deserializer<'a>>(d: D) -> Result<Self, D::Error> {
         String::deserialize(d).and_then(|v|
             V::parse_req(&v)
-                .map_err(|e| D::Error::invalid_value(Unexpected::Other(&e.to_string()), &V::EXPECTED))
+                .map_err(|e| D::Error::invalid_value(Unexpected::Other(&format!("{:?}", e)), &V::EXPECTED))
         )
     }
 }
 
 impl<V: ReqValue> Serialize for Req<V> {
     fn serialize<S: Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
-        todo!()
+        self.to_string().serialize(s)
     }
 }
 
 impl<V> Req<V> {
-    pub fn and<R: Into<Box<Self>>>(self, rhs: R) -> Self {
+    #[cfg(test)]
+    fn and<R: Into<Box<Self>>>(self, rhs: R) -> Self {
         Req::And(self.into(), rhs.into())
     }
 
-    pub fn or<R: Into<Box<Self>>>(self, rhs: R) -> Self {
+    #[cfg(test)]
+    fn or<R: Into<Box<Self>>>(self, rhs: R) -> Self {
         Req::Or(self.into(), rhs.into())
     }
 }
