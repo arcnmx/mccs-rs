@@ -1,14 +1,18 @@
 use {
     mccs::Version,
-    nom::{digit, is_hex_digit, is_space},
+    nom::{
+        branch::alt,
+        bytes::complete::{tag, take_while_m_n},
+        character::complete::{char, space0, u8},
+        combinator::{map, map_res, opt},
+        sequence::{delimited, preceded, separated_pair},
+        Finish, IResult,
+    },
     serde::{
         de::{Deserialize, Deserializer, Error, Unexpected},
         ser::{Serialize, Serializer},
     },
-    std::{
-        cmp, fmt,
-        str::{self, FromStr},
-    },
+    std::{cmp, fmt},
 };
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
@@ -45,29 +49,34 @@ trait ReqValue: Sized + fmt::Debug + fmt::Display {
     const EXPECTED: &'static str;
 
     fn parse_req(req: &str) -> Result<Req<Self>, Self::Err>;
+    fn parse_nom(i: &str) -> IResult<&str, Self>;
 }
 
 impl ReqValue for Version {
-    type Err = nom::ErrorKind;
+    type Err = nom::error::ErrorKind;
 
     const EXPECTED: &'static str = "version requirement";
 
     fn parse_req(req: &str) -> Result<Req<Self>, Self::Err> {
-        complete!(req.as_bytes(), parse_version_expr)
-            .to_result()
-            .map_err(|e| e.into_error_kind())
+        parse_req_expr(req).finish().map(|v| v.1).map_err(|e| e.code)
+    }
+
+    fn parse_nom(i: &str) -> IResult<&str, Self> {
+        parse_version(i)
     }
 }
 
 impl ReqValue for u8 {
-    type Err = nom::ErrorKind;
+    type Err = nom::error::ErrorKind;
 
     const EXPECTED: &'static str = "version requirement";
 
     fn parse_req(req: &str) -> Result<Req<Self>, Self::Err> {
-        complete!(req.as_bytes(), parse_u8_expr)
-            .to_result()
-            .map_err(|e| e.into_error_kind())
+        parse_req_expr(req).finish().map(|v| v.1).map_err(|e| e.code)
+    }
+
+    fn parse_nom(i: &str) -> IResult<&str, Self> {
+        parse_u8(i)
     }
 }
 
@@ -115,159 +124,82 @@ where
     }
 }
 
-impl Default for VersionReq {
+impl Default for Req<Version> {
     fn default() -> Self {
-        VersionReq::Ge(Version::new(0, 0))
+        Req::Ge(Version::new(0, 0))
     }
 }
 
-named!(parse_version<&[u8], Version>,
-    do_parse!(
-        take_while!(is_space) >>
-        major: map_res!(digit, |v| u8::from_str(str::from_utf8(v).unwrap())) >>
-        tag!(".") >>
-        minor: map_res!(digit, |v| u8::from_str(str::from_utf8(v).unwrap())) >>
-        take_while!(is_space) >>
-        (Version {
-            major,
-            minor,
-        })
-    )
-);
+fn parse_req_expr<V: ReqValue>(i: &str) -> IResult<&str, Req<V>> {
+    let (i, lhs) = match opt(delimited(char('('), parse_req_expr, char(')')))(i)? {
+        (i, Some(req)) => (i, Req::Bracket(Box::new(req))),
+        (_, None) => parse_req(i)?,
+    };
 
-named!(parse_u8<&[u8], u8>,
-    do_parse!(
-        take_while!(is_space) >>
-        tag!("0x") >>
-        req: map_res!(take_while!(is_hex_digit), |v| u8::from_str_radix(str::from_utf8(v).unwrap(), 16)) >>
-        take_while!(is_space) >>
-        (req)
-    )
-);
+    let (i, _) = space0(i)?;
+    let tags = alt((tag("&&"), tag("||")));
+    match opt(delimited(space0, tags, space0))(i)? {
+        (i, Some(op)) => {
+            let (i, rhs) = parse_req_expr(i)?;
+            Ok((i, match op {
+                "&&" => Req::And(Box::new(lhs), Box::new(rhs)),
+                "||" => Req::Or(Box::new(lhs), Box::new(rhs)),
+                op => unreachable!("{lhs:?} {op} {rhs:?}"),
+            }))
+        },
+        (i, None) => Ok((i, lhs)),
+    }
+}
 
-named!(parse_version_expr<&[u8], VersionReq>,
-    do_parse!(
-        lhs: parse_version_req >>
-        res: opt!(alt!(
-            do_parse!(
-                complete!(tag!("&&")) >>
-                rhs: parse_version_req >>
-                (Req::And as fn(_, _) -> VersionReq, Box::new(rhs))
-            ) |
-            do_parse!(
-                complete!(tag!("||")) >>
-                rhs: parse_version_req >>
-                (Req::Or as fn(_, _) -> VersionReq, Box::new(rhs))
-            )
-        )) >>
-        (match res {
-            Some((op, rhs)) => op(Box::new(lhs), rhs),
-            None => lhs,
-        })
-    )
-);
+fn parse_req<V: ReqValue>(i: &str) -> IResult<&str, Req<V>> {
+    let (i, _) = space0(i)?;
+    let tags = alt((tag("<="), tag("<"), tag(">="), tag(">"), tag("=")));
+    let op: Option<(_, fn(V) -> Req<_>)> = match opt(tags)(i)? {
+        (i, Some(op)) => Some((i, match op {
+            "<=" => Req::Le,
+            "<" => Req::Lt,
+            ">=" => Req::Ge,
+            ">" => Req::Gt,
+            "=" => Req::Eq,
+            op => unreachable!("unknown op {op}"),
+        })),
+        (_, None) => None,
+    };
+    match op {
+        Some((i, op)) => map(V::parse_nom, op)(i),
+        None => map(V::parse_nom, Req::Eq)(i),
+    }
+}
 
-named!(parse_version_req<&[u8], VersionReq>,
-    alt!(
-        do_parse!(
-            complete!(tag!("<=")) >>
-            v: parse_version >>
-            (Req::Le(v))
-        ) |
-        do_parse!(
-            complete!(tag!("<")) >>
-            v: parse_version >>
-            (Req::Lt(v))
-        ) |
-        do_parse!(
-            complete!(tag!(">=")) >>
-            v: parse_version >>
-            (Req::Ge(v))
-        ) |
-        do_parse!(
-            complete!(tag!(">")) >>
-            v: parse_version >>
-            (Req::Gt(v))
-        ) |
-        do_parse!(
-            complete!(tag!("=")) >>
-            v: parse_version >>
-            (Req::Eq(v))
-        ) |
-        map!(parse_version, Req::Eq)
-    )
-);
+fn hex_u8(i: &str) -> IResult<&str, u8> {
+    map_res(take_while_m_n(1, 2, |c: char| c.is_digit(16)), |i| {
+        u8::from_str_radix(i, 16)
+    })(i)
+}
 
-named!(parse_u8_expr<&[u8], Req<u8>>,
-    do_parse!(
-        lhs: alt!(
-            map!(
-                delimited!(
-                    char!('('),
-                    parse_u8_expr,
-                    char!(')')
-                ),
-                |v| Req::Bracket(Box::new(v))
-            ) |
-            parse_u8_req
-        ) >>
-        res: opt!(alt!(
-            do_parse!(
-                take_while!(is_space) >>
-                complete!(tag!("&&")) >>
-                take_while!(is_space) >>
-                rhs: parse_u8_expr >>
-                (Req::And as fn(_, _) -> Req<u8>, Box::new(rhs))
-            ) |
-            do_parse!(
-                take_while!(is_space) >>
-                complete!(tag!("||")) >>
-                take_while!(is_space) >>
-                rhs: parse_u8_expr >>
-                (Req::Or as fn(_, _) -> Req<u8>, Box::new(rhs))
-            )
-        )) >>
-        (match res {
-            Some((op, rhs)) => op(Box::new(lhs), rhs),
-            None => lhs,
-        })
-    )
-);
+fn parse_u8(i: &str) -> IResult<&str, u8> {
+    trim_spaces(alt((preceded(tag("0x"), hex_u8), u8)))(i)
+}
 
-named!(parse_u8_req<&[u8], Req<u8>>,
-    alt!(
-        do_parse!(
-            complete!(tag!("<=")) >>
-            v: parse_u8 >>
-            (Req::Le(v))
-        ) |
-        do_parse!(
-            complete!(tag!("<")) >>
-            v: parse_u8 >>
-            (Req::Lt(v))
-        ) |
-        do_parse!(
-            complete!(tag!(">=")) >>
-            v: parse_u8 >>
-            (Req::Ge(v))
-        ) |
-        do_parse!(
-            complete!(tag!(">")) >>
-            v: parse_u8 >>
-            (Req::Gt(v))
-        ) |
-        do_parse!(
-            complete!(tag!("=")) >>
-            v: parse_u8 >>
-            (Req::Eq(v))
-        ) |
-        map!(parse_u8, Req::Eq)
-    )
-);
+fn parse_version(i: &str) -> IResult<&str, Version> {
+    trim_spaces(map(separated_pair(u8, trim_spaces(char('.')), u8), |(major, minor)| {
+        Version { major, minor }
+    }))(i)
+}
+
+fn trim_spaces<I, O, E, P>(parser: P) -> impl FnMut(I) -> nom::IResult<I, O, E>
+where
+    P: nom::Parser<I, O, E>,
+    E: nom::error::ParseError<I>,
+    I: Clone + nom::InputTakeAtPosition,
+    <I as nom::InputTakeAtPosition>::Item: nom::AsChar + Clone,
+{
+    delimited(space0, parser, space0)
+}
 
 #[test]
 fn version() {
-    assert_eq!(parse_version(b"22.01").to_result().unwrap(), Version {
+    assert_eq!(parse_version("22.01").finish().unwrap().1, Version {
         major: 22,
         minor: 1
     })
@@ -276,7 +208,7 @@ fn version() {
 #[test]
 fn version_eq() {
     assert_eq!(
-        parse_version_expr(b"2.0").to_result().unwrap(),
+        parse_req_expr("2.0").finish().unwrap().1,
         VersionReq::Eq(Version { major: 2, minor: 0 })
     )
 }
@@ -284,20 +216,20 @@ fn version_eq() {
 #[test]
 fn version_req() {
     assert_eq!(
-        parse_version_expr(b"<=3.1").to_result().unwrap(),
+        parse_req_expr("<=3.1").finish().unwrap().1,
         VersionReq::Le(Version { major: 3, minor: 1 })
     )
 }
 
 #[test]
 fn u8_req() {
-    assert_eq!(parse_u8_expr(b"<=0x0a").to_result().unwrap(), Req::Le(0xa))
+    assert_eq!(parse_req_expr("<=0x0a").finish().unwrap().1, Req::Le(0xa))
 }
 
 #[test]
 fn u8_expr() {
     assert_eq!(
-        parse_u8_expr(b"0x0a && <0x05").to_result().unwrap(),
+        parse_req_expr("0x0a && <0x05").finish().unwrap().1,
         Req::Eq(0xa).and(Req::Lt(5))
     )
 }
@@ -305,7 +237,7 @@ fn u8_expr() {
 #[test]
 fn u8_chained_expr() {
     assert_eq!(
-        parse_u8_expr(b"(0x0a && <0x05) || (0x01 && 0x02)").to_result().unwrap(),
+        parse_req_expr("(0x0a && <0x05) || (0x01 && 0x02)").finish().unwrap().1,
         Req::Bracket(Req::Eq(0xa).and(Req::Lt(5)).into()).or(Req::Bracket(Req::Eq(1).and(Req::Eq(2)).into()))
     )
 }
@@ -313,7 +245,7 @@ fn u8_chained_expr() {
 #[test]
 fn u8_ordered_chain() {
     assert_eq!(
-        parse_u8_expr(b"0x0a || 0x01 || 0x02").to_result().unwrap(),
+        parse_req_expr("0x0a || 0x01 || 0x02").finish().unwrap().1,
         Req::Eq(0xa).or(Req::Eq(1).or(Req::Eq(2)))
     )
 }
@@ -321,9 +253,10 @@ fn u8_ordered_chain() {
 #[test]
 fn u8_nested_expr() {
     assert_eq!(
-        parse_u8_expr(b"((0x0a && (0x01 && 0x02)) || <0x03)")
-            .to_result()
-            .unwrap(),
+        parse_req_expr("((0x0a && (0x01 && 0x02)) || <0x03)")
+            .finish()
+            .unwrap()
+            .1,
         Req::Bracket(
             Req::Bracket(Req::Eq(0xa).and(Req::Bracket(Req::Eq(1).and(Req::Eq(2)).into())).into())
                 .or(Req::Lt(3))
@@ -335,9 +268,10 @@ fn u8_nested_expr() {
 #[test]
 fn u8_input_select_expr() {
     assert_eq!(
-        parse_u8_expr(b"(>=0x13 && <=0x18) || =0x1A || >=0x1C")
-            .to_result()
-            .unwrap(),
+        parse_req_expr("(>=0x13 && <=0x18) || =0x1A || >=0x1C")
+            .finish()
+            .unwrap()
+            .1,
         Req::Bracket(Req::Ge(0x13).and(Req::Le(0x18)).into()).or(Req::Eq(0x1a).or(Req::Ge(0x1c)))
     )
 }

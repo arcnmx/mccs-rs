@@ -24,9 +24,6 @@
 //! # }
 //! ```
 
-#[macro_use]
-extern crate nom;
-
 use {
     mccs::{Capabilities, FeatureCode, Value, ValueNames, Version},
     serde::{Deserialize, Serialize},

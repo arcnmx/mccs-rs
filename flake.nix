@@ -71,11 +71,6 @@
         cargoTestFlags = cargoBuildFlags;
         buildType = "debug";
         meta.name = "cargo test";
-
-        postCheck = ''
-          cargo check --workspace \
-            --features mccs-caps/test-nom-errors,mccs-db/test-nom-errors
-        '';
       };
     };
     legacyPackages = { callPackageSet }: callPackageSet {

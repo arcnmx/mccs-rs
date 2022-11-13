@@ -2,7 +2,7 @@
 name = "mccs-caps"
 version = "0.2.0" # keep in sync with html_root_url
 authors = ["arcnmx"]
-edition = "2018"
+edition = "2021"
 
 description = "MCCS capability string parser"
 keywords = ["ddc", "mccs", "vcp", "vesa"]
@@ -24,7 +24,4 @@ maintenance = { status = "passively-maintained" }
 
 [dependencies]
 mccs = { version = "0.2", path = "../" }
-nom = "3"
-
-[features]
-test-nom-errors = ["nom/verbose-errors"]
+nom = "7"

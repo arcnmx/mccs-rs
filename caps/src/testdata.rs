@@ -8,7 +8,7 @@ pub fn test_data() -> Vec<&'static [u8]> {
         // example from ddcutil
         &b"(prot(monitor)type(LED)model(25UM65)cmds(01 02 03 0C E3 F3)vcp(0203(10 00)0405080B0C101214(05 07 08 0B) 16181A5260(03 04)6C6E7087ACAEB6C0C6C8C9D6(01 04)DFE4E5E6E7E8E9EAEBED(00 10 20 40)EE(00 01)FE(01 02 03)FF)mswhql(1)mccs_ver(2.1))"[..],
         // example from MCCS spec v2.2a
-        &b"Prot(display) type(lcd) model(xxxxx) cmds(xxxxx) vcp(02 03 10 12 C8 DC(00 01 02 03 07) DF)mccs_ver(2.2) window1(type (PIP) area(25 25 1895 1175) max(640 480) min(10 10) window(10))vcpname(10(Brightness))"[..],
+        &b"Prot(display) type(lcd) model(xxxxx) cmds() vcp(02 03 10 12 C8 DC(00 01 02 03 07) DF)mccs_ver(2.2) window1(type (PIP) area(25 25 1895 1175) max(640 480) min(10 10) window(10))vcpname(10(Brightness))"[..],
         // example from access bus section 7
         &br"vcpname(14((9300 6500 5500))44(Rotate)80(Do\x20this(On Off))82(Fixit))"[..],
         // above example with matching vcp() section

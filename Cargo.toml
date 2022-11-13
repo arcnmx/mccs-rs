@@ -2,7 +2,7 @@
 name = "mccs"
 version = "0.2.0" # keep in sync with README and html_root_url
 authors = ["arcnmx"]
-edition = "2018"
+edition = "2021"
 
 description = "VESA Monitor Control Command Set"
 keywords = ["ddc", "mccs", "vcp", "vesa"]

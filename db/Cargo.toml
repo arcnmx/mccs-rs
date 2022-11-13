@@ -2,7 +2,7 @@
 name = "mccs-db"
 version = "0.2.0" # keep in sync with html_root_url
 authors = ["arcnmx"]
-edition = "2018"
+edition = "2021"
 
 description = "MCCS specification VCP database"
 keywords = ["ddc", "mccs", "vcp", "vesa"]
@@ -27,10 +27,7 @@ maintenance = { status = "passively-maintained" }
 mccs = { version = "0.2", path = "../" }
 serde = { version = "1", features = ["derive"] }
 serde_yaml = "0.9"
-nom = "3"
+nom = "7"
 
 [dev-dependencies]
 mccs-caps = { version = "0.2", path = "../caps" }
-
-[features]
-test-nom-errors = ["nom/verbose-errors"]
