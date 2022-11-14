@@ -293,3 +293,13 @@ fn u8_nested_expr() {
         )
     )
 }
+
+#[test]
+fn u8_input_select_expr() {
+    assert_eq!(
+        parse_u8_expr(b"(>=0x13 && <=0x18) || =0x1A || >=0x1C").to_result().unwrap(),
+        Req::Bracket(
+            Req::Ge(0x13).and(Req::Le(0x18)).into()
+        ).or(Req::Eq(0x1a).or(Req::Ge(0x1c)))
+    )
+}
