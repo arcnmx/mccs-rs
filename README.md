@@ -19,4 +19,4 @@ See the [documentation][docs] for up to date information.
 [docs-badge]: https://img.shields.io/badge/API-docs-blue.svg?style=flat-square
 [docs]: http://docs.rs/mccs/
 [license-badge]: https://img.shields.io/badge/license-MIT-ff69b4.svg?style=flat-square
-[license]: https://github.com/arcnmx/mccs-rs/blob/master/COPYING
+[license]: https://github.com/arcnmx/mccs-rs/blob/main/COPYING

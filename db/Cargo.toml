@@ -1,14 +1,15 @@
 [package]
 name = "mccs-db"
-version = "0.1.3" # keep in sync with README and html_root_url
+version = "0.1.3" # keep in sync with html_root_url
 authors = ["arcnmx"]
 
 description = "MCCS specification VCP database"
 keywords = ["ddc", "mccs", "vcp", "vesa"]
+categories = ["hardware-support"]
 
 documentation = "https://docs.rs/mccs-db"
 repository = "https://github.com/arcnmx/mccs-rs"
-readme = "../README.md"
+readme = "README.md"
 license = "MIT"
 
 [badges]

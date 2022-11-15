@@ -5,6 +5,7 @@ authors = ["arcnmx"]
 
 description = "VESA Monitor Control Command Set"
 keywords = ["ddc", "mccs", "vcp", "vesa"]
+categories = ["hardware-support"]
 
 documentation = "https://docs.rs/mccs"
 repository = "https://github.com/arcnmx/mccs-rs"
