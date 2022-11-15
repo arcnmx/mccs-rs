@@ -1,6 +1,6 @@
 [package]
 name = "mccs-caps"
-version = "0.1.0" # keep in sync with README and html_root_url
+version = "0.1.3" # keep in sync with README and html_root_url
 authors = ["arcnmx"]
 
 description = "MCCS capability string parser"
