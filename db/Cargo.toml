@@ -31,3 +31,6 @@ nom = "3"
 
 [dev-dependencies]
 mccs-caps = { version = "0.1", path = "../caps" }
+
+[features]
+test-nom-errors = ["nom/verbose-errors"]

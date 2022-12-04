@@ -24,3 +24,6 @@ maintenance = { status = "passively-maintained" }
 [dependencies]
 mccs = { version = "0.1", path = "../" }
 nom = "3"
+
+[features]
+test-nom-errors = ["nom/verbose-errors"]

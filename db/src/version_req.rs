@@ -53,7 +53,8 @@ impl ReqValue for Version {
     const EXPECTED: &'static str = "version requirement";
 
     fn parse_req(req: &str) -> Result<Req<Self>, Self::Err> {
-        parse_version_expr(req.as_bytes()).to_result()
+        complete!(req.as_bytes(), parse_version_expr).to_result()
+            .map_err(|e| e.into_error_kind())
     }
 }
 
@@ -63,7 +64,8 @@ impl ReqValue for u8 {
     const EXPECTED: &'static str = "version requirement";
 
     fn parse_req(req: &str) -> Result<Req<Self>, Self::Err> {
-        parse_u8_expr(req.as_bytes()).to_result()
+        complete!(req.as_bytes(), parse_u8_expr).to_result()
+            .map_err(|e| e.into_error_kind())
     }
 }
 

@@ -113,7 +113,7 @@ mod parser {
     };
 
     pub(crate) fn parse_caps(capability_string: &[u8]) -> io::Result<Vec<Cap>> {
-        caps(capability_string.as_ref())
+        complete!(capability_string, caps)
             .to_result()
             .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e.to_string()))
     }
