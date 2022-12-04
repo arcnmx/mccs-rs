@@ -8,16 +8,17 @@
 #[cfg(feature = "void")]
 extern crate void;
 
-use std::fmt::{self, Display, Formatter};
-use std::str::FromStr;
-use std::collections::{BTreeMap, btree_map};
-
+use std::{
+    collections::{btree_map, BTreeMap},
+    fmt::{self, Display, Formatter},
+    str::FromStr,
+};
 #[cfg(feature = "void")]
 use void::Void;
 
 /// An error type that cannot be encountered.
 #[cfg(not(feature = "void"))]
-pub enum Void { }
+pub enum Void {}
 
 /// VCP feature code
 pub type FeatureCode = u8;
@@ -57,7 +58,7 @@ impl Value {
         Value {
             sh: (v >> 8) as u8,
             sl: v as u8,
-            .. Default::default()
+            ..Default::default()
         }
     }
 
@@ -159,11 +160,14 @@ impl<'a> From<&'a str> for Protocol {
 
 impl Display for Protocol {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        Display::fmt(match *self {
-            Protocol::Monitor => "monitor",
-            Protocol::Display => "display",
-            Protocol::Unknown(ref s) => s,
-        }, f)
+        Display::fmt(
+            match *self {
+                Protocol::Monitor => "monitor",
+                Protocol::Display => "display",
+                Protocol::Unknown(ref s) => s,
+            },
+            f,
+        )
     }
 }
 
@@ -201,12 +205,15 @@ impl<'a> From<&'a str> for Type {
 
 impl Display for Type {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        Display::fmt(match *self {
-            Type::Crt => "crt",
-            Type::Lcd => "lcd",
-            Type::Led => "led",
-            Type::Unknown(ref s) => s,
-        }, f)
+        Display::fmt(
+            match *self {
+                Type::Crt => "crt",
+                Type::Lcd => "lcd",
+                Type::Led => "led",
+                Type::Unknown(ref s) => s,
+            },
+            f,
+        )
     }
 }
 

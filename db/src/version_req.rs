@@ -1,9 +1,15 @@
-use nom::{digit, is_hex_digit, is_space};
-use std::str::{self, FromStr};
-use std::{cmp, fmt};
-use serde::de::{Deserialize, Deserializer, Error, Unexpected};
-use serde::ser::{Serialize, Serializer};
-use mccs::Version;
+use {
+    mccs::Version,
+    nom::{digit, is_hex_digit, is_space},
+    serde::{
+        de::{Deserialize, Deserializer, Error, Unexpected},
+        ser::{Serialize, Serializer},
+    },
+    std::{
+        cmp, fmt,
+        str::{self, FromStr},
+    },
+};
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Req<V> {
@@ -43,6 +49,7 @@ trait ReqValue: Sized + fmt::Debug + fmt::Display {
 
 impl ReqValue for Version {
     type Err = nom::ErrorKind;
+
     const EXPECTED: &'static str = "version requirement";
 
     fn parse_req(req: &str) -> Result<Req<Self>, Self::Err> {
@@ -52,6 +59,7 @@ impl ReqValue for Version {
 
 impl ReqValue for u8 {
     type Err = nom::ErrorKind;
+
     const EXPECTED: &'static str = "version requirement";
 
     fn parse_req(req: &str) -> Result<Req<Self>, Self::Err> {
@@ -61,10 +69,9 @@ impl ReqValue for u8 {
 
 impl<'a, V: ReqValue> Deserialize<'a> for Req<V> {
     fn deserialize<D: Deserializer<'a>>(d: D) -> Result<Self, D::Error> {
-        String::deserialize(d).and_then(|v|
-            V::parse_req(&v)
-                .map_err(|e| D::Error::invalid_value(Unexpected::Other(&format!("{:?}", e)), &V::EXPECTED))
-        )
+        String::deserialize(d).and_then(|v| {
+            V::parse_req(&v).map_err(|e| D::Error::invalid_value(Unexpected::Other(&format!("{:?}", e)), &V::EXPECTED))
+        })
     }
 }
 
@@ -86,7 +93,8 @@ impl<V> Req<V> {
     }
 }
 
-impl<V> Req<V> where
+impl<V> Req<V>
+where
     V: cmp::PartialEq + cmp::PartialOrd,
 {
     pub fn matches(&self, v: &V) -> bool {
@@ -255,17 +263,26 @@ named!(parse_u8_req<&[u8], Req<u8>>,
 
 #[test]
 fn version() {
-    assert_eq!(parse_version(b"22.01").to_result().unwrap(), Version { major: 22, minor: 1 })
+    assert_eq!(parse_version(b"22.01").to_result().unwrap(), Version {
+        major: 22,
+        minor: 1
+    })
 }
 
 #[test]
 fn version_eq() {
-    assert_eq!(parse_version_expr(b"2.0").to_result().unwrap(), VersionReq::Eq(Version { major: 2, minor: 0 }))
+    assert_eq!(
+        parse_version_expr(b"2.0").to_result().unwrap(),
+        VersionReq::Eq(Version { major: 2, minor: 0 })
+    )
 }
 
 #[test]
 fn version_req() {
-    assert_eq!(parse_version_expr(b"<=3.1").to_result().unwrap(), VersionReq::Le(Version { major: 3, minor: 1 }))
+    assert_eq!(
+        parse_version_expr(b"<=3.1").to_result().unwrap(),
+        VersionReq::Le(Version { major: 3, minor: 1 })
+    )
 }
 
 #[test]
@@ -300,13 +317,13 @@ fn u8_ordered_chain() {
 #[test]
 fn u8_nested_expr() {
     assert_eq!(
-        parse_u8_expr(b"((0x0a && (0x01 && 0x02)) || <0x03)").to_result().unwrap(),
+        parse_u8_expr(b"((0x0a && (0x01 && 0x02)) || <0x03)")
+            .to_result()
+            .unwrap(),
         Req::Bracket(
-            Req::Bracket(
-                Req::Eq(0xa).and(
-                    Req::Bracket(Req::Eq(1).and(Req::Eq(2)).into())
-                ).into()
-            ).or(Req::Lt(3)).into()
+            Req::Bracket(Req::Eq(0xa).and(Req::Bracket(Req::Eq(1).and(Req::Eq(2)).into())).into())
+                .or(Req::Lt(3))
+                .into()
         )
     )
 }
@@ -314,9 +331,9 @@ fn u8_nested_expr() {
 #[test]
 fn u8_input_select_expr() {
     assert_eq!(
-        parse_u8_expr(b"(>=0x13 && <=0x18) || =0x1A || >=0x1C").to_result().unwrap(),
-        Req::Bracket(
-            Req::Ge(0x13).and(Req::Le(0x18)).into()
-        ).or(Req::Eq(0x1a).or(Req::Ge(0x1c)))
+        parse_u8_expr(b"(>=0x13 && <=0x18) || =0x1A || >=0x1C")
+            .to_result()
+            .unwrap(),
+        Req::Bracket(Req::Ge(0x13).and(Req::Le(0x18)).into()).or(Req::Eq(0x1a).or(Req::Ge(0x1c)))
     )
 }

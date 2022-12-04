@@ -31,18 +31,20 @@ extern crate mccs;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
-extern crate serde_yaml;
 #[cfg(test)]
 extern crate mccs_caps;
+extern crate serde_yaml;
 
-use std::collections::BTreeMap;
-use std::{io, mem};
-use mccs::{Capabilities, FeatureCode, ValueNames, Version, Value};
+use {
+    mccs::{Capabilities, FeatureCode, Value, ValueNames, Version},
+    std::{collections::BTreeMap, io, mem},
+};
 
 #[cfg(test)]
 #[path = "../../caps/src/testdata.rs"]
 mod testdata;
 
+#[rustfmt::skip::macros(named)]
 mod version_req;
 /// Describes how to interpret a table's raw value.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -71,11 +73,12 @@ impl TableInterpretation {
     pub fn format(&self, table: &[u8]) -> Result<String, ()> {
         Ok(match *self {
             TableInterpretation::Generic => format!("{:?}", table),
-            TableInterpretation::CodePage => if let Some(v) = table.get(0) {
-                format!("{}", v)
-            } else {
-                return Err(())
-            },
+            TableInterpretation::CodePage =>
+                if let Some(v) = table.get(0) {
+                    format!("{}", v)
+                } else {
+                    return Err(())
+                },
         })
     }
 }
@@ -193,8 +196,7 @@ impl Database {
                 continue
             }
 
-            let entry = self.entries.entry(code.code)
-                .or_insert_with(|| Descriptor::default());
+            let entry = self.entries.entry(code.code).or_insert_with(|| Descriptor::default());
 
             entry.code = code.code;
             if let Some(name) = code.name {
@@ -212,11 +214,18 @@ impl Database {
                         interpretation: TableInterpretation::Generic,
                     },
                     (DatabaseType::Table, Some(DatabaseInterpretation::Values(..))) =>
-                        return Err(io::Error::new(io::ErrorKind::InvalidData, "table type cannot have value names")),
+                        return Err(io::Error::new(
+                            io::ErrorKind::InvalidData,
+                            "table type cannot have value names",
+                        )),
                     (DatabaseType::Table, Some(DatabaseInterpretation::Id(id))) => ValueType::Table {
                         interpretation: match id {
                             DatabaseInterpretationId::CodePage => TableInterpretation::CodePage,
-                            id => return Err(io::Error::new(io::ErrorKind::InvalidData, format!("invalid interpretation {:?} for table", id))),
+                            id =>
+                                return Err(io::Error::new(
+                                    io::ErrorKind::InvalidData,
+                                    format!("invalid interpretation {:?} for table", id),
+                                )),
                         },
                     },
                     (DatabaseType::Continuous, ..) => ValueType::Continuous {
@@ -226,20 +235,27 @@ impl Database {
                         values: Default::default(),
                         interpretation: ValueInterpretation::NonContinuous,
                     },
-                    (DatabaseType::NonContinuous, Some(DatabaseInterpretation::Values(values))) => ValueType::NonContinuous {
-                        values: values.into_iter()
-                            .filter_map(|v| match v.value {
-                                DatabaseValue::Value(value) => Some((value, Some(v.name))),
-                                DatabaseValue::Range(..) => None, // unimplemented
-                            }).collect(),
-                        interpretation: ValueInterpretation::NonContinuous,
-                    },
+                    (DatabaseType::NonContinuous, Some(DatabaseInterpretation::Values(values))) =>
+                        ValueType::NonContinuous {
+                            values: values
+                                .into_iter()
+                                .filter_map(|v| match v.value {
+                                    DatabaseValue::Value(value) => Some((value, Some(v.name))),
+                                    DatabaseValue::Range(..) => None, // unimplemented
+                                })
+                                .collect(),
+                            interpretation: ValueInterpretation::NonContinuous,
+                        },
                     (DatabaseType::NonContinuous, Some(DatabaseInterpretation::Id(id))) => ValueType::NonContinuous {
                         values: Default::default(),
                         interpretation: match id {
                             DatabaseInterpretationId::NonZeroWrite => ValueInterpretation::NonZeroWrite,
                             DatabaseInterpretationId::VcpVersion => ValueInterpretation::VcpVersion,
-                            id => return Err(io::Error::new(io::ErrorKind::InvalidData, format!("invalid interpretation {:?} for nc", id))),
+                            id =>
+                                return Err(io::Error::new(
+                                    io::ErrorKind::InvalidData,
+                                    format!("invalid interpretation {:?} for nc", id),
+                                )),
                         },
                     },
                 }
@@ -275,8 +291,7 @@ impl Database {
     /// This format is not (yet) documented, but an example exists that
     /// [describes the MCCS spec](https://github.com/arcnmx/mccs-rs/blob/master/db/data/mccs.yml).
     pub fn from_database<R: io::Read>(database_yaml: R, mccs_version: &Version) -> io::Result<Self> {
-        let db = serde_yaml::from_reader(database_yaml)
-            .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
+        let db = serde_yaml::from_reader(database_yaml).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
 
         let mut s = Self::default();
         s.apply_database(db, mccs_version)?;
@@ -287,46 +302,50 @@ impl Database {
     /// specified display.
     pub fn apply_capabilities(&mut self, caps: &Capabilities) {
         let mut entries = mem::replace(&mut self.entries, Default::default());
-        self.entries.extend(caps.vcp_features.iter().map(|(code, desc)| match (entries.remove(code), *code, desc) {
-            (Some(mut mccs), code, cap) => {
-                if let Some(ref name) = cap.name {
-                    mccs.name = Some(name.clone());
-                }
-
-                if let ValueType::NonContinuous { ref mut values, .. } = mccs.ty {
-                    let mut full = mem::replace(values, Default::default());
-                    values.extend(cap.values.iter().map(|(&value, caps_name)| match full.remove(&value) {
-                        Some(name) => (value, caps_name.clone().or(name)),
-                        None => (value, caps_name.clone()),
-                    }));
-                }
-
-                (code, mccs)
-            },
-            (None, code, cap) => {
-                let desc = Descriptor {
-                    name: cap.name.clone(),
-                    description: None,
-                    group: None,
-                    code: code,
-                    ty: if cap.values.is_empty() {
-                        ValueType::Continuous {
-                            interpretation: ValueInterpretation::Continuous,
+        self.entries.extend(
+            caps.vcp_features
+                .iter()
+                .map(|(code, desc)| match (entries.remove(code), *code, desc) {
+                    (Some(mut mccs), code, cap) => {
+                        if let Some(ref name) = cap.name {
+                            mccs.name = Some(name.clone());
                         }
-                    } else {
-                        ValueType::NonContinuous {
-                            interpretation: ValueInterpretation::NonContinuous,
-                            values: cap.values.clone(),
+
+                        if let ValueType::NonContinuous { ref mut values, .. } = mccs.ty {
+                            let mut full = mem::replace(values, Default::default());
+                            values.extend(cap.values.iter().map(|(&value, caps_name)| match full.remove(&value) {
+                                Some(name) => (value, caps_name.clone().or(name)),
+                                None => (value, caps_name.clone()),
+                            }));
                         }
+
+                        (code, mccs)
                     },
-                    access: Access::ReadWrite,
-                    mandatory: false,
-                    interacts_with: Vec::new(),
-                };
+                    (None, code, cap) => {
+                        let desc = Descriptor {
+                            name: cap.name.clone(),
+                            description: None,
+                            group: None,
+                            code: code,
+                            ty: if cap.values.is_empty() {
+                                ValueType::Continuous {
+                                    interpretation: ValueInterpretation::Continuous,
+                                }
+                            } else {
+                                ValueType::NonContinuous {
+                                    interpretation: ValueInterpretation::NonContinuous,
+                                    values: cap.values.clone(),
+                                }
+                            },
+                            access: Access::ReadWrite,
+                            mandatory: false,
+                            interacts_with: Vec::new(),
+                        };
 
-                (code, desc)
-            },
-        }));
+                        (code, desc)
+                    },
+                }),
+        );
     }
 
     /// Get the description of a given VCP feature code.
@@ -405,7 +424,7 @@ struct DatabaseFeature {
     desc: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     group: Option<String>,
-    #[serde(rename="type")]
+    #[serde(rename = "type")]
     ty: Option<DatabaseType>,
     #[serde(default)]
     interpretation: Option<DatabaseInterpretation>,
@@ -428,8 +447,10 @@ struct DatabaseFile {
 #[test]
 fn load_database() {
     for version in &[
-        Version::new(2, 0), Version::new(2, 1), Version::new(2, 2),
-        Version::new(3, 0)
+        Version::new(2, 0),
+        Version::new(2, 1),
+        Version::new(2, 2),
+        Version::new(3, 0),
     ] {
         let db = Database::from_version(version);
         for sample in testdata::test_data() {

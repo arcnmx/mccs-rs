@@ -13,5 +13,6 @@ in {
   tasks = {
     build.inputs = singleton checks.test;
     versions.inputs = singleton checks.versions;
+    fmt.inputs = singleton checks.rustfmt;
   };
 }
