@@ -22,5 +22,5 @@ include = [
 maintenance = { status = "passively-maintained" }
 
 [dependencies]
-mccs = { version = "^0.1.0", path = "../" }
-nom = "^3.2.1"
+mccs = { version = "0.1", path = "../" }
+nom = "3"

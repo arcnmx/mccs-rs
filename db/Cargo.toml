@@ -23,11 +23,11 @@ include = [
 maintenance = { status = "passively-maintained" }
 
 [dependencies]
-mccs = { version = "^0.1.0", path = "../" }
-serde = "^1.0.33"
-serde_derive = "^1.0.33"
-serde_yaml = "^0.7.3"
-nom = "^3.2.1"
+mccs = { version = "0.1", path = "../" }
+serde = "1"
+serde_derive = "1"
+serde_yaml = "0.7"
+nom = "3"
 
 [dev-dependencies]
-mccs-caps = { version = "^0.1.0", path = "../caps" }
+mccs-caps = { version = "0.1", path = "../caps" }
