@@ -12,8 +12,13 @@ repository = "https://github.com/arcnmx/mccs-rs"
 readme = "README.md"
 license = "MIT"
 
+include = [
+	"/src/**/*.rs",
+	"/README*",
+	"/COPYING*",
+]
+
 [badges]
-travis-ci = { repository = "arcnmx/mccs-rs" }
 maintenance = { status = "passively-maintained" }
 
 [dependencies]

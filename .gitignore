@@ -1,5 +1,4 @@
-/Cargo.lock
+/result*
 /target/
 /.cargo/
 /.gitattributes
-*.swp

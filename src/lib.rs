@@ -1,5 +1,5 @@
 #![deny(missing_docs)]
-#![doc(html_root_url = "http://docs.rs/mccs/0.1.0")]
+#![doc(html_root_url = "https://docs.rs/mccs/0.1.0")]
 
 //! VESA Monitor Command Control Set standardizes the meaning of DDC/CI VCP
 //! feature codes, and allows a display to broadcast its capabilities to the
