@@ -149,29 +149,28 @@ mod parser {
         )
     );
 
-    named!(balancedparens,
-        take_while!({
-            // I have no idea how to thread state through this so yay globals...
-            use std::sync::atomic::{Ordering, AtomicUsize};
-            static DEPTH: AtomicUsize = AtomicUsize::new(0);
-            move |c| {
-                let depth = DEPTH.load(Ordering::Relaxed);
-
-                match c {
-                    b')' if depth == 0 => false,
-                    b')' => {
-                        DEPTH.store(depth - 1, Ordering::Relaxed);
-                        true
+    fn balancedparens_incomplete(i: &[u8]) -> nom::IResult<&[u8], &[u8]> {
+        let mut depth = 0usize;
+        for (x, &c) in i.iter().enumerate() {
+            match c {
+                b')' => match depth.checked_sub(1) {
+                    Some(v) => depth = v,
+                    None => {
+                        let (o, i) = i.split_at(x);
+                        return nom::IResult::Done(i, o)
                     },
-                    b'(' => {
-                        DEPTH.store(depth + 1, Ordering::Relaxed);
-                        true
-                    },
-                    _ => true,
-                }
+                },
+                b'(' => depth += 1,
+                _ => (),
             }
-        })
-    );
+        }
+        match depth {
+            0 => nom::IResult::Done(Default::default(), i),
+            depth => nom::IResult::Incomplete(nom::Needed::Size(depth)),
+        }
+    }
+
+    named!(balancedparens, complete!(balancedparens_incomplete));
 
     named!(ident<&[u8], &str>,
         map_res!(take_while!(|c| is_alphanumeric(c) || c == b'_'), str::from_utf8)
