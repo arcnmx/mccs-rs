@@ -63,11 +63,12 @@
           }; }
         ];
       };
-      test = { rustPlatform, source }: rustPlatform.buildRustPackage {
+      test = { rustPlatform, source }: rustPlatform.buildRustPackage rec {
         pname = self.lib.crate.package.name;
         inherit (self.lib.crate) cargoLock version;
         src = source;
         cargoBuildFlags = [ "--workspace" ];
+        cargoTestFlags = cargoBuildFlags;
         buildType = "debug";
         meta.name = "cargo test";
 
