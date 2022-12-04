@@ -232,7 +232,7 @@ mod parser {
                 ) |
                 caps_inner // hack for Apple Cinema Display
             ) >>
-            is_a!(&b"\0 "[..]) >>
+            take_while!(|c| c == 0 || c == b' ') >>
             eof!() >>
             (v)
         )
