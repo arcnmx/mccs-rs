@@ -25,7 +25,7 @@ members = ["caps", "db"]
 maintenance = { status = "passively-maintained" }
 
 [dependencies]
-void = { version = "^1.0.2", optional = true }
+void = { version = "1", optional = true }
 
 [features]
 default = ["void"]
