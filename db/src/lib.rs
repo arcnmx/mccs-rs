@@ -446,6 +446,7 @@ struct DatabaseFeature {
     #[serde(default)]
     mandatory: bool,
     access: Option<DatabaseReadWrite>,
+    #[allow(dead_code)]
     #[serde(default, skip_serializing_if = "Option::is_none")]
     desc_long: Option<String>,
     #[serde(default, rename = "interacts")]
