@@ -101,7 +101,15 @@ impl ValueInterpretation {
     pub fn format(&self, value: &Value) -> String {
         match *self {
             ValueInterpretation::Continuous => format!("{} / {}", value.value(), value.maximum()),
-            ValueInterpretation::NonContinuous => format!("{}", value.value()),
+            ValueInterpretation::NonContinuous => {
+                let v16 = match value.value() {
+                    // Some displays set the high byte to a duplicate of of low byte,
+                    // so assume this is a u8 value if it is out of the expected range
+                    v16 if v16 > value.maximum() => v16 & 0x00ff,
+                    v16 => v16,
+                };
+                format!("{}", v16)
+            },
             ValueInterpretation::NonZeroWrite => if value.sl == 0 { "unset" } else { "set" }.into(),
             ValueInterpretation::VcpVersion => format!("{}", Version::new(value.sh, value.sl)),
         }
