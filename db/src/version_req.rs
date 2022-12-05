@@ -26,14 +26,14 @@ pub enum Req<V> {
 impl<V: fmt::Display> fmt::Display for Req<V> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Req::Bracket(r) => write!(f, "({r})"),
-            Req::And(lhs, rhs) => write!(f, "{lhs} && {rhs}"),
-            Req::Or(lhs, rhs) => write!(f, "{lhs} || {rhs}"),
-            Req::Eq(v) => write!(f, "={v}"),
-            Req::Gt(v) => write!(f, ">{v}"),
-            Req::Ge(v) => write!(f, ">={v}"),
-            Req::Lt(v) => write!(f, "<{v}"),
-            Req::Le(v) => write!(f, "<={v}"),
+            Req::Bracket(r) => write!(f, "({})", r),
+            Req::And(lhs, rhs) => write!(f, "{} && {}", lhs, rhs),
+            Req::Or(lhs, rhs) => write!(f, "{} || {}", lhs, rhs),
+            Req::Eq(v) => write!(f, "={}", v),
+            Req::Gt(v) => write!(f, ">{}", v),
+            Req::Ge(v) => write!(f, ">={}", v),
+            Req::Lt(v) => write!(f, "<{}", v),
+            Req::Le(v) => write!(f, "<={}", v),
         }
     }
 }
